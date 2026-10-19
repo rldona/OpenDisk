@@ -1,0 +1,24 @@
+[workspace]
+resolver = "2"
+members = ["core", "cli", "app/src-tauri"]
+# The Tauri crate needs the built frontend (app/dist) to compile, so plain
+# `cargo build` / `cargo test` at the root only touch the core and the CLI.
+default-members = ["core", "cli"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Raúl López"]
+rust-version = "1.80"
+
+[workspace.dependencies]
+opendisk-core = { path = "core" }
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+strip = true
