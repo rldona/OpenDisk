@@ -1,0 +1,1894 @@
+{
+ "home": "/Users/demo",
+ "disk": {
+  "total": 494384795648,
+  "available": 37551554560
+ },
+ "scan": {
+  "root": "/Users/demo",
+  "tree": {
+   "name": "/Users/demo",
+   "size": 346319999998,
+   "files": 3848033,
+   "own_files_size": 0,
+   "denied": false,
+   "children": [
+    {
+     "name": "Library",
+     "size": 124629999998,
+     "files": 1384796,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "Application Support",
+       "size": 58729999999,
+       "files": 652562,
+       "own_files_size": 0,
+       "denied": false,
+       "children": [
+        {
+         "name": "MobileSync",
+         "size": 38000000000,
+         "files": 422223,
+         "own_files_size": 0,
+         "denied": false,
+         "children": [
+          {
+           "name": "Backup",
+           "size": 38000000000,
+           "files": 422223,
+           "own_files_size": 0,
+           "denied": false,
+           "children": [
+            {
+             "name": "00008110-000A1B2C3D4E5F6A",
+             "size": 38000000000,
+             "files": 422223,
+             "own_files_size": 38000000000,
+             "denied": false,
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "name": "nomic.ai",
+         "size": 16199999999,
+         "files": 180002,
+         "own_files_size": 0,
+         "denied": false,
+         "children": [
+          {
+           "name": "GPT4All",
+           "size": 16199999999,
+           "files": 180002,
+           "own_files_size": 0,
+           "denied": false,
+           "children": [
+            {
+             "name": "orca-2-13b.Q4_0.gguf",
+             "size": 7400000000,
+             "files": 82223,
+             "own_files_size": 7400000000,
+             "denied": false,
+             "children": []
+            },
+            {
+             "name": "Meta-Llama-3-8B-Instruct.Q4_0.gguf",
+             "size": 4700000000,
+             "files": 52223,
+             "own_files_size": 4700000000,
+             "denied": false,
+             "children": []
+            },
+            {
+             "name": "mistral-7b-instruct-v0.1.Q4_0.gguf",
+             "size": 4099999999,
+             "files": 45556,
+             "own_files_size": 4099999999,
+             "denied": false,
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "name": "Slack",
+         "size": 1500000000,
+         "files": 16668,
+         "own_files_size": 0,
+         "denied": false,
+         "children": [
+          {
+           "name": "Service Worker",
+           "size": 1200000000,
+           "files": 13334,
+           "own_files_size": 0,
+           "denied": false,
+           "children": [
+            {
+             "name": "CacheStorage",
+             "size": 1200000000,
+             "files": 13334,
+             "own_files_size": 1200000000,
+             "denied": false,
+             "children": []
+            }
+           ]
+          },
+          {
+           "name": "Cache",
+           "size": 300000000,
+           "files": 3334,
+           "own_files_size": 300000000,
+           "denied": false,
+           "children": []
+          }
+         ]
+        },
+        {
+         "name": "Arc",
+         "size": 1100000000,
+         "files": 12223,
+         "own_files_size": 1100000000,
+         "denied": false,
+         "children": []
+        },
+        {
+         "name": "Google",
+         "size": 1000000000,
+         "files": 11112,
+         "own_files_size": 0,
+         "denied": false,
+         "children": [
+          {
+           "name": "Chrome",
+           "size": 1000000000,
+           "files": 11112,
+           "own_files_size": 0,
+           "denied": false,
+           "children": [
+            {
+             "name": "Default",
+             "size": 1000000000,
+             "files": 11112,
+             "own_files_size": 0,
+             "denied": false,
+             "children": [
+              {
+               "name": "Service Worker",
+               "size": 1000000000,
+               "files": 11112,
+               "own_files_size": 0,
+               "denied": false,
+               "children": [
+                {
+                 "name": "CacheStorage",
+                 "size": 1000000000,
+                 "files": 11112,
+                 "own_files_size": 1000000000,
+                 "denied": false,
+                 "children": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "name": "Code",
+         "size": 930000000,
+         "files": 10334,
+         "own_files_size": 0,
+         "denied": false,
+         "children": [
+          {
+           "name": "Cache",
+           "size": 530000000,
+           "files": 5889,
+           "own_files_size": 530000000,
+           "denied": false,
+           "children": []
+          },
+          {
+           "name": "CachedData",
+           "size": 400000000,
+           "files": 4445,
+           "own_files_size": 400000000,
+           "denied": false,
+           "children": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name": "Developer",
+       "size": 23499999999,
+       "files": 261115,
+       "own_files_size": 0,
+       "denied": false,
+       "children": [
+        {
+         "name": "Xcode",
+         "size": 18699999999,
+         "files": 207781,
+         "own_files_size": 0,
+         "denied": false,
+         "children": [
+          {
+           "name": "DerivedData",
+           "size": 11799999999,
+           "files": 131113,
+           "own_files_size": 0,
+           "denied": false,
+           "children": [
+            {
+             "name": "Demo-abcdefghijk",
+             "size": 8199999999,
+             "files": 91112,
+             "own_files_size": 8199999999,
+             "denied": false,
+             "children": []
+            },
+            {
+             "name": "Widgets-qwertyuiop",
+             "size": 3600000000,
+             "files": 40001,
+             "own_files_size": 3600000000,
+             "denied": false,
+             "children": []
+            }
+           ]
+          },
+          {
+           "name": "iOS DeviceSupport",
+           "size": 5500000000,
+           "files": 61112,
+           "own_files_size": 0,
+           "denied": false,
+           "children": [
+            {
+             "name": "iPhone15,2 17.5 (21F79)",
+             "size": 3100000000,
+             "files": 34445,
+             "own_files_size": 3100000000,
+             "denied": false,
+             "children": []
+            },
+            {
+             "name": "iPhone15,2 18.0 (22A3354)",
+             "size": 2400000000,
+             "files": 26667,
+             "own_files_size": 2400000000,
+             "denied": false,
+             "children": []
+            }
+           ]
+          },
+          {
+           "name": "Archives",
+           "size": 1400000000,
+           "files": 15556,
+           "own_files_size": 0,
+           "denied": false,
+           "children": [
+            {
+             "name": "2026-05-12",
+             "size": 1400000000,
+             "files": 15556,
+             "own_files_size": 1400000000,
+             "denied": false,
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "name": "CoreSimulator",
+         "size": 4800000000,
+         "files": 53334,
+         "own_files_size": 0,
+         "denied": false,
+         "children": [
+          {
+           "name": "Devices",
+           "size": 4800000000,
+           "files": 53334,
+           "own_files_size": 4800000000,
+           "denied": false,
+           "children": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name": "Containers",
+       "size": 21700000000,
+       "files": 241112,
+       "own_files_size": 0,
+       "denied": false,
+       "children": [
+        {
+         "name": "com.docker.docker",
+         "size": 21700000000,
+         "files": 241112,
+         "own_files_size": 0,
+         "denied": false,
+         "children": [
+          {
+           "name": "Data",
+           "size": 21700000000,
+           "files": 241112,
+           "own_files_size": 0,
+           "denied": false,
+           "children": [
+            {
+             "name": "vms",
+             "size": 21700000000,
+             "files": 241112,
+             "own_files_size": 0,
+             "denied": false,
+             "children": [
+              {
+               "name": "0",
+               "size": 21700000000,
+               "files": 241112,
+               "own_files_size": 0,
+               "denied": false,
+               "children": [
+                {
+                 "name": "data",
+                 "size": 21700000000,
+                 "files": 241112,
+                 "own_files_size": 0,
+                 "denied": false,
+                 "children": [
+                  {
+                   "name": "Docker.raw",
+                   "size": 21700000000,
+                   "files": 241112,
+                   "own_files_size": 21700000000,
+                   "denied": false,
+                   "children": []
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name": "Caches",
+       "size": 10800000000,
+       "files": 120005,
+       "own_files_size": 0,
+       "denied": false,
+       "children": [
+        {
+         "name": "pip",
+         "size": 2400000000,
+         "files": 26667,
+         "own_files_size": 2400000000,
+         "denied": false,
+         "children": []
+        },
+        {
+         "name": "ms-playwright",
+         "size": 2300000000,
+         "files": 25556,
+         "own_files_size": 2300000000,
+         "denied": false,
+         "children": []
+        },
+        {
+         "name": "Google",
+         "size": 1800000000,
+         "files": 20001,
+         "own_files_size": 1800000000,
+         "denied": false,
+         "children": []
+        },
+        {
+         "name": "Homebrew",
+         "size": 1600000000,
+         "files": 17778,
+         "own_files_size": 1600000000,
+         "denied": false,
+         "children": []
+        },
+        {
+         "name": "Yarn",
+         "size": 1100000000,
+         "files": 12223,
+         "own_files_size": 1100000000,
+         "denied": false,
+         "children": []
+        },
+        {
+         "name": "com.spotify.client",
+         "size": 900000000,
+         "files": 10001,
+         "own_files_size": 900000000,
+         "denied": false,
+         "children": []
+        },
+        {
+         "name": "com.figma.Desktop",
+         "size": 600000000,
+         "files": 6667,
+         "own_files_size": 600000000,
+         "denied": false,
+         "children": []
+        },
+        {
+         "name": "org.videolan.vlc",
+         "size": 100000000,
+         "files": 1112,
+         "own_files_size": 100000000,
+         "denied": false,
+         "children": []
+        }
+       ]
+      },
+      {
+       "name": "Mail",
+       "size": 4200000000,
+       "files": 46667,
+       "own_files_size": 4200000000,
+       "denied": false,
+       "children": []
+      },
+      {
+       "name": "Group Containers",
+       "size": 3300000000,
+       "files": 36667,
+       "own_files_size": 3300000000,
+       "denied": false,
+       "children": []
+      },
+      {
+       "name": "pnpm",
+       "size": 2200000000,
+       "files": 24445,
+       "own_files_size": 0,
+       "denied": false,
+       "children": [
+        {
+         "name": "store",
+         "size": 2200000000,
+         "files": 24445,
+         "own_files_size": 2200000000,
+         "denied": false,
+         "children": []
+        }
+       ]
+      },
+      {
+       "name": "Logs",
+       "size": 200000000,
+       "files": 2223,
+       "own_files_size": 0,
+       "denied": false,
+       "children": [
+        {
+         "name": "DiagnosticReports",
+         "size": 120000000,
+         "files": 1334,
+         "own_files_size": 120000000,
+         "denied": false,
+         "children": []
+        },
+        {
+         "name": "JetBrains",
+         "size": 80000000,
+         "files": 889,
+         "own_files_size": 80000000,
+         "denied": false,
+         "children": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Pictures",
+     "size": 62000000000,
+     "files": 688889,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "Photos Library.photoslibrary",
+       "size": 62000000000,
+       "files": 688889,
+       "own_files_size": 62000000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": ".cache",
+     "size": 33180000000,
+     "files": 368669,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "huggingface",
+       "size": 26100000000,
+       "files": 290001,
+       "own_files_size": 0,
+       "denied": false,
+       "children": [
+        {
+         "name": "hub",
+         "size": 26100000000,
+         "files": 290001,
+         "own_files_size": 0,
+         "denied": false,
+         "children": [
+          {
+           "name": "models--meta-llama--Llama-3.1-8B-Instruct",
+           "size": 16100000000,
+           "files": 178889,
+           "own_files_size": 16100000000,
+           "denied": false,
+           "children": []
+          },
+          {
+           "name": "models--stabilityai--stable-diffusion-xl-base-1.0",
+           "size": 6900000000,
+           "files": 76667,
+           "own_files_size": 6900000000,
+           "denied": false,
+           "children": []
+          },
+          {
+           "name": "models--openai--whisper-large-v3",
+           "size": 3100000000,
+           "files": 34445,
+           "own_files_size": 3100000000,
+           "denied": false,
+           "children": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name": "uv",
+       "size": 5300000000,
+       "files": 58889,
+       "own_files_size": 5300000000,
+       "denied": false,
+       "children": []
+      },
+      {
+       "name": "torch",
+       "size": 1200000000,
+       "files": 13334,
+       "own_files_size": 0,
+       "denied": false,
+       "children": [
+        {
+         "name": "hub",
+         "size": 1200000000,
+         "files": 13334,
+         "own_files_size": 1200000000,
+         "denied": false,
+         "children": []
+        }
+       ]
+      },
+      {
+       "name": "puppeteer",
+       "size": 580000000,
+       "files": 6445,
+       "own_files_size": 580000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": ".npm",
+     "size": 20800000000,
+     "files": 231112,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "_cacache",
+       "size": 17400000000,
+       "files": 193334,
+       "own_files_size": 17400000000,
+       "denied": false,
+       "children": []
+      },
+      {
+       "name": "_npx",
+       "size": 3400000000,
+       "files": 37778,
+       "own_files_size": 3400000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": ".ollama",
+     "size": 18600000000,
+     "files": 206667,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "models",
+       "size": 18600000000,
+       "files": 206667,
+       "own_files_size": 18600000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": "code",
+     "size": 15500000000,
+     "files": 172224,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "ml-experiments",
+       "size": 11200000000,
+       "files": 124445,
+       "own_files_size": 0,
+       "denied": false,
+       "children": [
+        {
+         "name": "data",
+         "size": 11200000000,
+         "files": 124445,
+         "own_files_size": 11200000000,
+         "denied": false,
+         "children": []
+        }
+       ]
+      },
+      {
+       "name": "ios-app",
+       "size": 2400000000,
+       "files": 26667,
+       "own_files_size": 2400000000,
+       "denied": false,
+       "children": []
+      },
+      {
+       "name": "web-app",
+       "size": 1900000000,
+       "files": 21112,
+       "own_files_size": 0,
+       "denied": false,
+       "children": [
+        {
+         "name": "node_modules",
+         "size": 1900000000,
+         "files": 21112,
+         "own_files_size": 1900000000,
+         "denied": false,
+         "children": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Documents",
+     "size": 14400000000,
+     "files": 160001,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "Projects",
+       "size": 14000000000,
+       "files": 155556,
+       "own_files_size": 14000000000,
+       "denied": false,
+       "children": []
+      },
+      {
+       "name": "Taxes",
+       "size": 400000000,
+       "files": 4445,
+       "own_files_size": 400000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": ".gradle",
+     "size": 12610000000,
+     "files": 140113,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "caches",
+       "size": 12100000000,
+       "files": 134445,
+       "own_files_size": 12100000000,
+       "denied": false,
+       "children": []
+      },
+      {
+       "name": "wrapper",
+       "size": 310000000,
+       "files": 3445,
+       "own_files_size": 0,
+       "denied": false,
+       "children": [
+        {
+         "name": "dists",
+         "size": 310000000,
+         "files": 3445,
+         "own_files_size": 0,
+         "denied": false,
+         "children": [
+          {
+           "name": "gradle-8.7-bin",
+           "size": 310000000,
+           "files": 3445,
+           "own_files_size": 310000000,
+           "denied": false,
+           "children": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "name": "daemon",
+       "size": 200000000,
+       "files": 2223,
+       "own_files_size": 200000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": "Movies",
+     "size": 9500000000,
+     "files": 105556,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "Screen recordings",
+       "size": 9500000000,
+       "files": 105556,
+       "own_files_size": 9500000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": ".lmstudio",
+     "size": 9000000000,
+     "files": 100001,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "models",
+       "size": 9000000000,
+       "files": 100001,
+       "own_files_size": 0,
+       "denied": false,
+       "children": [
+        {
+         "name": "lmstudio-community",
+         "size": 9000000000,
+         "files": 100001,
+         "own_files_size": 0,
+         "denied": false,
+         "children": [
+          {
+           "name": "Qwen2.5-Coder-14B-Instruct-GGUF",
+           "size": 9000000000,
+           "files": 100001,
+           "own_files_size": 9000000000,
+           "denied": false,
+           "children": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "name": "Music",
+     "size": 6100000000,
+     "files": 67778,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "Music",
+       "size": 6100000000,
+       "files": 67778,
+       "own_files_size": 6100000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": "Downloads",
+     "size": 4000000000,
+     "files": 44445,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "Xcode_16.xip",
+       "size": 3400000000,
+       "files": 37778,
+       "own_files_size": 3400000000,
+       "denied": false,
+       "children": []
+      },
+      {
+       "name": "Docker.dmg",
+       "size": 600000000,
+       "files": 6667,
+       "own_files_size": 600000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": "miniconda3",
+     "size": 3900000000,
+     "files": 43334,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "pkgs",
+       "size": 3900000000,
+       "files": 43334,
+       "own_files_size": 3900000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": ".cargo",
+     "size": 3000000000,
+     "files": 33335,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "registry",
+       "size": 3000000000,
+       "files": 33335,
+       "own_files_size": 0,
+       "denied": false,
+       "children": [
+        {
+         "name": "src",
+         "size": 2100000000,
+         "files": 23334,
+         "own_files_size": 2100000000,
+         "denied": false,
+         "children": []
+        },
+        {
+         "name": "cache",
+         "size": 900000000,
+         "files": 10001,
+         "own_files_size": 900000000,
+         "denied": false,
+         "children": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "name": ".m2",
+     "size": 2600000000,
+     "files": 28889,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "repository",
+       "size": 2600000000,
+       "files": 28889,
+       "own_files_size": 2600000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": ".Trash",
+     "size": 2200000000,
+     "files": 24445,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "old-project",
+       "size": 2200000000,
+       "files": 24445,
+       "own_files_size": 2200000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": ".rustup",
+     "size": 1600000000,
+     "files": 17778,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "toolchains",
+       "size": 1600000000,
+       "files": 17778,
+       "own_files_size": 1600000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": ".vscode",
+     "size": 1400000000,
+     "files": 15556,
+     "own_files_size": 0,
+     "denied": false,
+     "children": [
+      {
+       "name": "extensions",
+       "size": 1400000000,
+       "files": 15556,
+       "own_files_size": 1400000000,
+       "denied": false,
+       "children": []
+      }
+     ]
+    },
+    {
+     "name": "Desktop",
+     "size": 1300000000,
+     "files": 14445,
+     "own_files_size": 1300000000,
+     "denied": false,
+     "children": []
+    }
+   ]
+  },
+  "cancelled": false,
+  "stats": {
+   "files": 3848033,
+   "dirs": 508735,
+   "bytes": 346319999998,
+   "errors": 0
+  },
+  "denied": [],
+  "duration_ms": 41200
+ },
+ "findings": [
+  {
+   "rule_id": "ios-backups",
+   "name": "iPhone and iPad backups",
+   "category": "backups",
+   "category_label": "Device backups",
+   "safety": "personal",
+   "explanation": "Local backups made by Finder or iTunes. They may be the only copy of a device's data. Check the date and device in Finder before removing one.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 38000000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Application Support/MobileSync/Backup/00008110-000A1B2C3D4E5F6A",
+     "bytes": 38000000000,
+     "files": 422223,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "huggingface-hub",
+   "name": "Hugging Face model cache",
+   "category": "ai-models",
+   "category_label": "AI models",
+   "safety": "review",
+   "explanation": "Models and tokenizers downloaded by transformers, diffusers and the huggingface_hub library (`models--org--name`). They are downloaded again the next time a script loads them, which can take a while for large models.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 26100000000,
+   "items": [
+    {
+     "path": "/Users/demo/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B-Instruct",
+     "bytes": 16100000000,
+     "files": 178889,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    },
+    {
+     "path": "/Users/demo/.cache/huggingface/hub/models--stabilityai--stable-diffusion-xl-base-1.0",
+     "bytes": 6900000000,
+     "files": 76667,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    },
+    {
+     "path": "/Users/demo/.cache/huggingface/hub/models--openai--whisper-large-v3",
+     "bytes": 3100000000,
+     "files": 34445,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "docker-desktop-disk",
+   "name": "Docker Desktop disk image",
+   "category": "containers",
+   "category_label": "Containers",
+   "safety": "personal",
+   "explanation": "The virtual disk holding every Docker image, container and volume. Volumes may contain databases. OpenDisk runs `docker system prune` instead of deleting it; Docker Desktop then shrinks the file over time.",
+   "prefer_command": {
+    "argv": [
+     "docker",
+     "system",
+     "prune",
+     "--force"
+    ],
+    "description": "Removes stopped containers, unused networks, dangling images and build cache."
+   },
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 21700000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw",
+     "bytes": 21700000000,
+     "files": 241112,
+     "is_dir": false,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "npm-cache",
+   "name": "npm cache",
+   "category": "javascript",
+   "category_label": "JavaScript",
+   "safety": "regenerable",
+   "explanation": "Every package tarball npm has downloaded, plus npx installs and logs. Projects keep working; npm downloads packages again when needed (same as `npm cache clean --force`).",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 20800000000,
+   "items": [
+    {
+     "path": "/Users/demo/.npm/_cacache",
+     "bytes": 17400000000,
+     "files": 193334,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    },
+    {
+     "path": "/Users/demo/.npm/_npx",
+     "bytes": 3400000000,
+     "files": 37778,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "ollama-models",
+   "name": "Ollama models",
+   "category": "ai-models",
+   "category_label": "AI models",
+   "safety": "review",
+   "explanation": "All models pulled with `ollama pull`. Removing them means downloading again (`ollama pull <model>`). To remove a single model use `ollama rm <model>`.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [
+    "ollama"
+   ],
+   "total_bytes": 18600000000,
+   "items": [
+    {
+     "path": "/Users/demo/.ollama/models",
+     "bytes": 18600000000,
+     "files": 206667,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": [
+      "com.electron.ollama"
+     ]
+    }
+   ]
+  },
+  {
+   "rule_id": "gpt4all-models",
+   "name": "GPT4All models",
+   "category": "ai-models",
+   "category_label": "AI models",
+   "safety": "review",
+   "explanation": "Local language models downloaded by GPT4All (often 4-8 GB each). You can download them again from the app's model list. Quit GPT4All first.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [
+    "GPT4All",
+    "chat"
+   ],
+   "total_bytes": 16200000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Application Support/nomic.ai/GPT4All/orca-2-13b.Q4_0.gguf",
+     "bytes": 7400000000,
+     "files": 82223,
+     "is_dir": false,
+     "modified": 1760000000,
+     "requires_closed": []
+    },
+    {
+     "path": "/Users/demo/Library/Application Support/nomic.ai/GPT4All/Meta-Llama-3-8B-Instruct.Q4_0.gguf",
+     "bytes": 4700000000,
+     "files": 52223,
+     "is_dir": false,
+     "modified": 1760000000,
+     "requires_closed": []
+    },
+    {
+     "path": "/Users/demo/Library/Application Support/nomic.ai/GPT4All/mistral-7b-instruct-v0.1.Q4_0.gguf",
+     "bytes": 4099999999,
+     "files": 45556,
+     "is_dir": false,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "gradle-caches",
+   "name": "Gradle caches",
+   "category": "jvm",
+   "category_label": "Java & Android",
+   "safety": "regenerable",
+   "explanation": "Downloaded dependencies, build cache and daemon logs. Gradle downloads what it needs on the next build. Run `./gradlew --stop` first.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 12300000000,
+   "items": [
+    {
+     "path": "/Users/demo/.gradle/caches",
+     "bytes": 12100000000,
+     "files": 134445,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    },
+    {
+     "path": "/Users/demo/.gradle/daemon",
+     "bytes": 200000000,
+     "files": 2223,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "xcode-derived-data",
+   "name": "Xcode DerivedData",
+   "category": "xcode",
+   "category_label": "Xcode & simulators",
+   "safety": "regenerable",
+   "explanation": "Intermediate build products and indexes. Xcode rebuilds them on the next build (the first build after cleaning is slower). Quit Xcode first.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 11800000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Developer/Xcode/DerivedData/Demo-abcdefghijk",
+     "bytes": 8199999999,
+     "files": 91112,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": [
+      "com.apple.dt.Xcode"
+     ]
+    },
+    {
+     "path": "/Users/demo/Library/Developer/Xcode/DerivedData/Widgets-qwertyuiop",
+     "bytes": 3600000000,
+     "files": 40001,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": [
+      "com.apple.dt.Xcode"
+     ]
+    }
+   ]
+  },
+  {
+   "rule_id": "lmstudio-models",
+   "name": "LM Studio models",
+   "category": "ai-models",
+   "category_label": "AI models",
+   "safety": "review",
+   "explanation": "Models downloaded in LM Studio, one folder per model. They can be downloaded again from LM Studio's Discover tab. Quit LM Studio first.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 9000000000,
+   "items": [
+    {
+     "path": "/Users/demo/.lmstudio/models/lmstudio-community/Qwen2.5-Coder-14B-Instruct-GGUF",
+     "bytes": 9000000000,
+     "files": 100001,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": [
+      "ai.elementlabs.lmstudio"
+     ]
+    }
+   ]
+  },
+  {
+   "rule_id": "xcode-device-support",
+   "name": "Xcode device support files",
+   "category": "xcode",
+   "category_label": "Xcode & simulators",
+   "safety": "regenerable",
+   "explanation": "Debug symbols copied from every device OS version you have connected. Xcode copies them again the next time you connect a device with that version.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 5500000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Developer/Xcode/iOS DeviceSupport/iPhone15,2 17.5 (21F79)",
+     "bytes": 3100000000,
+     "files": 34445,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": [
+      "com.apple.dt.Xcode"
+     ]
+    },
+    {
+     "path": "/Users/demo/Library/Developer/Xcode/iOS DeviceSupport/iPhone15,2 18.0 (22A3354)",
+     "bytes": 2400000000,
+     "files": 26667,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": [
+      "com.apple.dt.Xcode"
+     ]
+    }
+   ]
+  },
+  {
+   "rule_id": "uv-cache",
+   "name": "uv cache",
+   "category": "python",
+   "category_label": "Python",
+   "safety": "regenerable",
+   "explanation": "Packages and Python builds cached by uv. Same as `uv cache clean`. Virtual environments created by uv keep working.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 5300000000,
+   "items": [
+    {
+     "path": "/Users/demo/.cache/uv",
+     "bytes": 5300000000,
+     "files": 58889,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "simulator-devices",
+   "name": "iOS simulators",
+   "category": "xcode",
+   "category_label": "Xcode & simulators",
+   "safety": "review",
+   "explanation": "Simulator devices and the apps and data installed in them. OpenDisk runs `xcrun simctl delete unavailable`, which only removes simulators whose runtime is gone; delete others from Xcode > Devices and Simulators.",
+   "prefer_command": {
+    "argv": [
+     "xcrun",
+     "simctl",
+     "delete",
+     "unavailable"
+    ],
+    "description": "Deletes only the simulators whose OS runtime is no longer installed."
+   },
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 4800000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Developer/CoreSimulator/Devices",
+     "bytes": 4800000000,
+     "files": 53334,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "old-installers",
+   "name": "Old installers in Downloads",
+   "category": "downloads",
+   "category_label": "Downloads",
+   "safety": "review",
+   "explanation": "Disk images and installer packages downloaded more than 30 days ago. Once the app is installed they are usually not needed.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 4000000000,
+   "items": [
+    {
+     "path": "/Users/demo/Downloads/Xcode_16.xip",
+     "bytes": 3400000000,
+     "files": 37778,
+     "is_dir": false,
+     "modified": 1760000000,
+     "requires_closed": []
+    },
+    {
+     "path": "/Users/demo/Downloads/Docker.dmg",
+     "bytes": 600000000,
+     "files": 6667,
+     "is_dir": false,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "conda-packages",
+   "name": "Conda package cache",
+   "category": "python",
+   "category_label": "Python",
+   "safety": "regenerable",
+   "explanation": "Downloaded package tarballs and extracted packages. Packages used by an environment are hardlinked, so `conda clean --all` is the safe way to trim it.",
+   "prefer_command": {
+    "argv": [
+     "conda",
+     "clean",
+     "--all",
+     "--yes"
+    ],
+    "description": "Removes unused packages and tarballs from the conda cache."
+   },
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 3900000000,
+   "items": [
+    {
+     "path": "/Users/demo/miniconda3/pkgs",
+     "bytes": 3900000000,
+     "files": 43334,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "user-caches",
+   "name": "Application caches",
+   "category": "app-caches",
+   "category_label": "App caches",
+   "safety": "regenerable",
+   "explanation": "Per-app caches in ~/Library/Caches. macOS itself may purge this folder when space runs low, and apps rebuild what they need. Apple's own caches are skipped. The owning app must be closed.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 3400000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Caches/Google",
+     "bytes": 1800000000,
+     "files": 20001,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    },
+    {
+     "path": "/Users/demo/Library/Caches/com.spotify.client",
+     "bytes": 900000000,
+     "files": 10001,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    },
+    {
+     "path": "/Users/demo/Library/Caches/com.figma.Desktop",
+     "bytes": 600000000,
+     "files": 6667,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    },
+    {
+     "path": "/Users/demo/Library/Caches/org.videolan.vlc",
+     "bytes": 100000000,
+     "files": 1112,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "cargo-registry",
+   "name": "Cargo registry cache",
+   "category": "rust-go",
+   "category_label": "Rust & Go",
+   "safety": "regenerable",
+   "explanation": "Downloaded crates and git dependencies. Cargo downloads them again on the next build. Installed binaries in ~/.cargo/bin are not touched.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [
+    "cargo",
+    "rust-analyzer"
+   ],
+   "total_bytes": 3000000000,
+   "items": [
+    {
+     "path": "/Users/demo/.cargo/registry/src",
+     "bytes": 2100000000,
+     "files": 23334,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    },
+    {
+     "path": "/Users/demo/.cargo/registry/cache",
+     "bytes": 900000000,
+     "files": 10001,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "browser-test-runtimes",
+   "name": "Browser testing downloads",
+   "category": "javascript",
+   "category_label": "JavaScript",
+   "safety": "regenerable",
+   "explanation": "Browser builds downloaded by Playwright, Cypress and Puppeteer. Run `npx playwright install` (or reinstall Cypress/Puppeteer) to get them back.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 2880000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Caches/ms-playwright",
+     "bytes": 2300000000,
+     "files": 25556,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    },
+    {
+     "path": "/Users/demo/.cache/puppeteer",
+     "bytes": 580000000,
+     "files": 6445,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "maven-repository",
+   "name": "Maven local repository",
+   "category": "jvm",
+   "category_label": "Java & Android",
+   "safety": "regenerable",
+   "explanation": "Artifacts downloaded by Maven (and some Gradle builds). Maven downloads them again. Artifacts you installed locally with `mvn install` would need a rebuild.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 2600000000,
+   "items": [
+    {
+     "path": "/Users/demo/.m2/repository",
+     "bytes": 2600000000,
+     "files": 28889,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "pip-cache",
+   "name": "pip cache",
+   "category": "python",
+   "category_label": "Python",
+   "safety": "regenerable",
+   "explanation": "Wheels and downloads cached by pip. Same as `pip cache purge`; packages are downloaded again on the next install.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 2400000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Caches/pip",
+     "bytes": 2400000000,
+     "files": 26667,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "pnpm-store",
+   "name": "pnpm store",
+   "category": "javascript",
+   "category_label": "JavaScript",
+   "safety": "regenerable",
+   "explanation": "pnpm's content-addressed store. node_modules folders hardlink into it, so deleting it frees less than shown until projects reinstall. `pnpm store prune` removes only unreferenced packages.",
+   "prefer_command": {
+    "argv": [
+     "pnpm",
+     "store",
+     "prune"
+    ],
+    "description": "Removes only packages no project references any more."
+   },
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 2200000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/pnpm/store",
+     "bytes": 2200000000,
+     "files": 24445,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "trash",
+   "name": "Trash",
+   "category": "trash",
+   "category_label": "Trash",
+   "safety": "personal",
+   "explanation": "Items you already moved to the Trash. Emptying it deletes them for good; this is the only action in OpenDisk that cannot be undone.",
+   "prefer_command": null,
+   "permanent": true,
+   "requires_no_process": [],
+   "total_bytes": 2200000000,
+   "items": [
+    {
+     "path": "/Users/demo/.Trash/old-project",
+     "bytes": 2200000000,
+     "files": 24445,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "homebrew-cache",
+   "name": "Homebrew downloads",
+   "category": "homebrew",
+   "category_label": "Homebrew",
+   "safety": "regenerable",
+   "explanation": "Bottles and source archives downloaded by Homebrew. Installed packages are not affected.",
+   "prefer_command": {
+    "argv": [
+     "brew",
+     "cleanup",
+     "--prune=all"
+    ],
+    "description": "Removes old versions and all cached downloads."
+   },
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 1600000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Caches/Homebrew",
+     "bytes": 1600000000,
+     "files": 17778,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "slack-caches",
+   "name": "Slack caches",
+   "category": "app-caches",
+   "category_label": "App caches",
+   "safety": "regenerable",
+   "explanation": "Cached images, files and web code from Slack. Messages live on Slack's servers and are downloaded again. Quit Slack first.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 1500000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Application Support/Slack/Service Worker/CacheStorage",
+     "bytes": 1200000000,
+     "files": 13334,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": [
+      "com.tinyspeck.slackmacgap"
+     ]
+    },
+    {
+     "path": "/Users/demo/Library/Application Support/Slack/Cache",
+     "bytes": 300000000,
+     "files": 3334,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": [
+      "com.tinyspeck.slackmacgap"
+     ]
+    }
+   ]
+  },
+  {
+   "rule_id": "xcode-archives",
+   "name": "Xcode archives",
+   "category": "xcode",
+   "category_label": "Xcode & simulators",
+   "safety": "review",
+   "explanation": "Archived app builds, including the dSYM files needed to symbolicate crash reports of released versions. Keep the ones for builds still in the wild.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 1400000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Developer/Xcode/Archives/2026-05-12",
+     "bytes": 1400000000,
+     "files": 15556,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "torch-hub",
+   "name": "PyTorch hub cache",
+   "category": "ai-models",
+   "category_label": "AI models",
+   "safety": "review",
+   "explanation": "Pretrained weights downloaded by torch.hub and torchvision. PyTorch downloads them again when a model asks for them.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 1200000000,
+   "items": [
+    {
+     "path": "/Users/demo/.cache/torch/hub",
+     "bytes": 1200000000,
+     "files": 13334,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "yarn-cache",
+   "name": "Yarn cache",
+   "category": "javascript",
+   "category_label": "JavaScript",
+   "safety": "regenerable",
+   "explanation": "Package archives cached by Yarn classic and Yarn Berry. Yarn downloads them again on the next install.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 1100000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Caches/Yarn",
+     "bytes": 1100000000,
+     "files": 12223,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "chrome-caches",
+   "name": "Google Chrome caches",
+   "category": "browsers",
+   "category_label": "Browsers",
+   "safety": "regenerable",
+   "explanation": "Per-profile code, GPU and service worker caches. Bookmarks, history, passwords and cookies are not touched. Quit Chrome first.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 1000000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Application Support/Google/Chrome/Default/Service Worker/CacheStorage",
+     "bytes": 1000000000,
+     "files": 11112,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": [
+      "com.google.Chrome"
+     ]
+    }
+   ]
+  },
+  {
+   "rule_id": "vscode-caches",
+   "name": "VS Code caches",
+   "category": "app-caches",
+   "category_label": "App caches",
+   "safety": "regenerable",
+   "explanation": "Electron caches, old-version update data and logs of Visual Studio Code. Settings and extensions are not touched. Quit VS Code first.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 930000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Application Support/Code/Cache",
+     "bytes": 530000000,
+     "files": 5889,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": [
+      "com.microsoft.VSCode"
+     ]
+    },
+    {
+     "path": "/Users/demo/Library/Application Support/Code/CachedData",
+     "bytes": 400000000,
+     "files": 4445,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": [
+      "com.microsoft.VSCode"
+     ]
+    }
+   ]
+  },
+  {
+   "rule_id": "gradle-wrapper",
+   "name": "Gradle wrapper distributions",
+   "category": "jvm",
+   "category_label": "Java & Android",
+   "safety": "regenerable",
+   "explanation": "Full Gradle distributions downloaded by `./gradlew`, one per version. The wrapper downloads the version a project needs again.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 310000000,
+   "items": [
+    {
+     "path": "/Users/demo/.gradle/wrapper/dists/gradle-8.7-bin",
+     "bytes": 310000000,
+     "files": 3445,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  },
+  {
+   "rule_id": "user-logs",
+   "name": "Application logs",
+   "category": "logs",
+   "category_label": "Logs",
+   "safety": "review",
+   "explanation": "Log files and crash reports written by apps. Useful when debugging a crash, otherwise safe to remove; apps create new ones.",
+   "prefer_command": null,
+   "permanent": false,
+   "requires_no_process": [],
+   "total_bytes": 200000000,
+   "items": [
+    {
+     "path": "/Users/demo/Library/Logs/DiagnosticReports",
+     "bytes": 120000000,
+     "files": 1334,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    },
+    {
+     "path": "/Users/demo/Library/Logs/JetBrains",
+     "bytes": 80000000,
+     "files": 889,
+     "is_dir": true,
+     "modified": 1760000000,
+     "requires_closed": []
+    }
+   ]
+  }
+ ],
+ "snapshots": {
+  "snapshots": [
+   {
+    "name": "com.apple.TimeMachine.2026-10-19-091512.local",
+    "kind": "time_machine",
+    "date": "2026-10-19-091512"
+   },
+   {
+    "name": "com.apple.os.update-60587424F5399FC05D957DF05B4D2F65",
+    "kind": "os_update",
+    "date": null
+   }
+  ],
+  "explanation": "APFS local snapshots keep deleted and changed blocks so Time Machine and macOS updates can roll back. Their size is not shown by any folder (it counts as \"System Data\"), and space you free may not show up until the snapshot that still references it expires. Time Machine snapshots expire after 24 hours; macOS also removes them automatically when the disk is nearly full. OS-update snapshots disappear after the update finishes.",
+  "thin_command": "tmutil thinlocalsnapshots / 999999999999 4",
+  "error": null
+ }
+}
