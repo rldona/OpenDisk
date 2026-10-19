@@ -264,7 +264,7 @@ export default function App() {
             </label>
           )}
           <button className="ghost" onClick={() => setSelected(new Map())}>
-            Clear
+            Deselect all
           </button>
           <button className="primary" onClick={preview}>
             Preview…
