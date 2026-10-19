@@ -40,7 +40,7 @@ enum Command {
         /// Folder to scan (default: the home folder). Use `/System/Volumes/Data`
         /// for the whole data volume.
         path: Option<PathBuf>,
-        /// Levels of folders to print.
+        /// Levels of folders to print (and to include with --json).
         #[arg(long, default_value_t = 2)]
         depth: usize,
         /// Children shown per folder.
@@ -208,6 +208,8 @@ fn cmd_scan(home: &Path, root: PathBuf, depth: usize, top: usize, json: bool, no
         }
     }
     if json {
+        let mut result = result;
+        prune(&mut result.tree, depth);
         println!("{}", serde_json::to_string(&result)?);
         return Ok(());
     }
@@ -227,6 +229,16 @@ fn cmd_scan(home: &Path, root: PathBuf, depth: usize, top: usize, json: bool, no
         );
     }
     Ok(())
+}
+
+/// Drops folders deeper than `depth` so JSON output stays small.
+fn prune(node: &mut DirNode, depth: usize) {
+    if depth == 0 {
+        node.children.clear();
+    }
+    for c in &mut node.children {
+        prune(c, depth.saturating_sub(1));
+    }
 }
 
 fn print_tree(node: &DirNode, level: usize, depth: usize, top: usize) {
