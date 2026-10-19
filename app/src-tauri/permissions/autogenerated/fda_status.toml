@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-fda-status"
+description = "Enables the fda_status command without any pre-configured scope."
+commands.allow = ["fda_status"]
+
+[[permission]]
+identifier = "deny-fda-status"
+description = "Denies the fda_status command without any pre-configured scope."
+commands.deny = ["fda_status"]

@@ -1,0 +1,22 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The only things the OpenDisk window may do.",
+  "windows": ["main"],
+  "permissions": [
+    "core:event:default",
+    "allow-app-info",
+    "allow-disk-info",
+    "allow-fda-status",
+    "allow-open-fda-settings",
+    "allow-start-scan",
+    "allow-cancel-scan",
+    "allow-get-tree",
+    "allow-get-findings",
+    "allow-create-plan",
+    "allow-execute-plan",
+    "allow-undo-run",
+    "allow-list-snapshots",
+    "allow-reveal-path"
+  ]
+}
