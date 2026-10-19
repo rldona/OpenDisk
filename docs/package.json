@@ -1,0 +1,17 @@
+{
+  "name": "opendisk-docs",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.14.0",
+    "vitepress": "^1.6.4",
+    "yaml": "^2.9.1"
+  }
+}

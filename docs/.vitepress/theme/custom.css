@@ -1,0 +1,20 @@
+/* OpenDisk colours: the blue-to-teal of the app icon. */
+:root {
+  --vp-c-brand-1: #2563eb;
+  --vp-c-brand-2: #1d4ed8;
+  --vp-c-brand-3: #2563eb;
+  --vp-c-brand-soft: rgba(37, 99, 235, 0.14);
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #2563eb 20%, #0f766e);
+  --vp-home-hero-image-background-image: linear-gradient(135deg, rgba(37, 99, 235, 0.45), rgba(15, 118, 110, 0.45));
+  --vp-home-hero-image-filter: blur(56px);
+}
+.dark {
+  --vp-c-brand-1: #60a5fa;
+  --vp-c-brand-2: #3b82f6;
+  --vp-c-brand-3: #2563eb;
+  --vp-home-hero-name-background: linear-gradient(120deg, #60a5fa 20%, #2dd4bf);
+}
+.rule {
+  margin-bottom: 8px;
+}
