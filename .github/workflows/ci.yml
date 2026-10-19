@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
 
 permissions:
@@ -20,7 +21,7 @@ jobs:
     name: Rust (fmt, clippy, tests)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -30,24 +31,25 @@ jobs:
       - run: cargo test -p opendisk-core -p opendisk-cli
 
   frontend:
-    name: Frontend (lockfile, typecheck, build)
-    runs-on: ubuntu-latest
+    name: Frontend (lockfiles, typecheck, build)
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: app
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: app/package-lock.json
-      - name: Lockfile must only use the public npm registry
+      - name: Lockfiles must only use the public npm registry
         run: |
-          if grep -qiE 'jfrog|artifactory' package-lock.json; then
-            echo "package-lock.json references a private registry"; exit 1
+          if grep -qiE 'jfrog|artifactory' package-lock.json ../docs/package-lock.json; then
+            echo "a package-lock.json references a private registry"; exit 1
           fi
           node scripts/check-lockfile.mjs
+          node scripts/check-lockfile.mjs ../docs/package-lock.json
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
@@ -56,11 +58,13 @@ jobs:
     name: macOS app bundle (unsigned)
     runs-on: macos-latest
     needs: [rust, frontend]
+    permissions:
+      contents: write # to publish a release when a v* tag is pushed
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           cache-dependency-path: app/package-lock.json
       - uses: dtolnay/rust-toolchain@stable
@@ -76,10 +80,15 @@ jobs:
       - name: Build universal .app and .dmg (ad-hoc signed, not notarized)
         working-directory: app
         run: npx tauri build --target universal-apple-darwin --bundles app,dmg
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: OpenDisk-macos-universal
           path: |
             target/universal-apple-darwin/release/bundle/dmg/*.dmg
             target/universal-apple-darwin/release/bundle/macos/*.app
           if-no-files-found: error
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" target/universal-apple-darwin/release/bundle/dmg/*.dmg --generate-notes --title "OpenDisk $GITHUB_REF_NAME"
