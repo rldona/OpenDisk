@@ -1,0 +1,761 @@
+# OpenDisk cleaning rules for macOS.
+#
+# Every rule needs at least one `examples` entry: the test suite builds a fake
+# home folder with all examples and checks each one is claimed by its rule.
+#
+# safety:
+#   regenerable  a cache the owning tool rebuilds on demand (may be deleted directly)
+#   review       rebuildable but expensive (large downloads, build archives) - goes to Trash
+#   personal     the user's own data - only ever goes to Trash
+#
+# priority: higher wins when two rules match the same or nested paths. The
+# catch-all rules use 10 so that specific rules (default 50) claim first.
+version: 1
+rules:
+  # ---------------------------------------------------------------- AI models
+  - id: gpt4all-models
+    name: GPT4All models
+    category: ai-models
+    safety: review
+    kind: file
+    paths:
+      - "~/Library/Application Support/nomic.ai/GPT4All/*.{gguf,bin}"
+    explanation: >-
+      Local language models downloaded by GPT4All (often 4-8 GB each). You can
+      download them again from the app's model list. Quit GPT4All first.
+    requires_no_process: [GPT4All, chat]
+    examples: ["~/Library/Application Support/nomic.ai/GPT4All/mistral-7b.Q4_0.gguf"]
+    non_examples: ["~/Library/Application Support/nomic.ai/GPT4All/localdocs_v2.db"]
+
+  - id: ollama-models
+    name: Ollama models
+    category: ai-models
+    safety: review
+    paths: ["~/.ollama/models"]
+    explanation: >-
+      All models pulled with `ollama pull`. Removing them means downloading again
+      (`ollama pull <model>`). To remove a single model use `ollama rm <model>`.
+    requires_closed: [com.electron.ollama]
+    requires_no_process: [ollama]
+    examples: ["~/.ollama/models"]
+
+  - id: lmstudio-models
+    name: LM Studio models
+    category: ai-models
+    safety: review
+    paths:
+      - "~/.lmstudio/models/*/*"
+      - "~/.cache/lm-studio/models/*/*"
+    explanation: >-
+      Models downloaded in LM Studio, one folder per model. They can be
+      downloaded again from LM Studio's Discover tab. Quit LM Studio first.
+    requires_closed: [ai.elementlabs.lmstudio]
+    examples:
+      - "~/.lmstudio/models/lmstudio-community/Qwen3-8B-GGUF"
+      - "~/.cache/lm-studio/models/TheBloke/Llama-2-7B-GGUF"
+
+  - id: huggingface-hub
+    name: Hugging Face model cache
+    category: ai-models
+    safety: review
+    paths:
+      - "~/.cache/huggingface/hub/*"
+      - "~/.cache/huggingface/xet"
+    exclude: ["~/.cache/huggingface/hub/.locks"]
+    explanation: >-
+      Models and tokenizers downloaded by transformers, diffusers and the
+      huggingface_hub library (`models--org--name`). They are downloaded again the
+      next time a script loads them, which can take a while for large models.
+    examples:
+      - "~/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B"
+      - "~/.cache/huggingface/xet"
+    non_examples: ["~/.cache/huggingface/hub/.locks"]
+
+  - id: huggingface-datasets
+    name: Hugging Face datasets cache
+    category: ai-models
+    safety: review
+    paths: ["~/.cache/huggingface/datasets/*"]
+    explanation: >-
+      Datasets downloaded and preprocessed by the `datasets` library. They are
+      downloaded and processed again when a script loads them.
+    examples: ["~/.cache/huggingface/datasets/squad"]
+
+  - id: torch-hub
+    name: PyTorch hub cache
+    category: ai-models
+    safety: review
+    paths: ["~/.cache/torch/*"]
+    explanation: >-
+      Pretrained weights downloaded by torch.hub and torchvision. PyTorch
+      downloads them again when a model asks for them.
+    examples: ["~/.cache/torch/hub"]
+
+  - id: whisper-models
+    name: Whisper models
+    category: ai-models
+    safety: review
+    paths: ["~/.cache/whisper/*"]
+    explanation: >-
+      Speech recognition models downloaded by openai-whisper. They are
+      downloaded again on first use.
+    examples: ["~/.cache/whisper/large-v3.pt"]
+
+  # ------------------------------------------------------ Xcode & simulators
+  - id: xcode-derived-data
+    name: Xcode DerivedData
+    category: xcode
+    safety: regenerable
+    paths: ["~/Library/Developer/Xcode/DerivedData/*"]
+    explanation: >-
+      Intermediate build products and indexes. Xcode rebuilds them on the next
+      build (the first build after cleaning is slower). Quit Xcode first.
+    requires_closed: [com.apple.dt.Xcode]
+    examples: ["~/Library/Developer/Xcode/DerivedData/MyApp-abcdefghijklmnop"]
+
+  - id: xcode-archives
+    name: Xcode archives
+    category: xcode
+    safety: review
+    paths: ["~/Library/Developer/Xcode/Archives/*"]
+    explanation: >-
+      Archived app builds, including the dSYM files needed to symbolicate crash
+      reports of released versions. Keep the ones for builds still in the wild.
+    examples: ["~/Library/Developer/Xcode/Archives/2025-03-01"]
+
+  - id: xcode-device-support
+    name: Xcode device support files
+    category: xcode
+    safety: regenerable
+    paths: ["~/Library/Developer/Xcode/{iOS,watchOS,tvOS,visionOS} DeviceSupport/*"]
+    explanation: >-
+      Debug symbols copied from every device OS version you have connected. Xcode
+      copies them again the next time you connect a device with that version.
+    requires_closed: [com.apple.dt.Xcode]
+    examples:
+      - "~/Library/Developer/Xcode/iOS DeviceSupport/iPhone15,2 17.4 (21E219)"
+      - "~/Library/Developer/Xcode/watchOS DeviceSupport/Watch6,1 10.4"
+
+  - id: xcode-previews
+    name: SwiftUI previews cache
+    category: xcode
+    safety: regenerable
+    paths:
+      - "~/Library/Developer/Xcode/UserData/Previews/*"
+      - "~/Library/Developer/Xcode/DocumentationCache/*"
+    explanation: >-
+      Simulator devices and data used by SwiftUI previews, and Xcode's
+      documentation cache. Xcode recreates them when needed.
+    requires_closed: [com.apple.dt.Xcode]
+    examples:
+      - "~/Library/Developer/Xcode/UserData/Previews/Simulator Devices"
+      - "~/Library/Developer/Xcode/DocumentationCache/v257"
+
+  - id: xcode-cache
+    name: Xcode cache
+    category: xcode
+    safety: regenerable
+    paths: ["~/Library/Caches/com.apple.dt.Xcode"]
+    explanation: >-
+      Xcode's general cache (downloads metadata, compiled asset catalogs). Xcode
+      rebuilds it. Quit Xcode first.
+    requires_closed: [com.apple.dt.Xcode]
+    examples: ["~/Library/Caches/com.apple.dt.Xcode"]
+
+  - id: simulator-devices
+    name: iOS simulators
+    category: xcode
+    safety: review
+    paths: ["~/Library/Developer/CoreSimulator/Devices"]
+    prefer_command:
+      argv: [xcrun, simctl, delete, unavailable]
+      description: Deletes only the simulators whose OS runtime is no longer installed.
+    explanation: >-
+      Simulator devices and the apps and data installed in them. OpenDisk runs
+      `xcrun simctl delete unavailable`, which only removes simulators whose
+      runtime is gone; delete others from Xcode > Devices and Simulators.
+    examples: ["~/Library/Developer/CoreSimulator/Devices"]
+
+  - id: simulator-caches
+    name: Simulator caches
+    category: xcode
+    safety: regenerable
+    paths: ["~/Library/Developer/CoreSimulator/Caches/*"]
+    explanation: >-
+      Dyld shared caches built for simulator runtimes. The simulator rebuilds them
+      when it boots a device.
+    requires_closed: [com.apple.iphonesimulator]
+    examples: ["~/Library/Developer/CoreSimulator/Caches/dyld"]
+
+  - id: swiftpm-cache
+    name: Swift Package Manager cache
+    category: xcode
+    safety: regenerable
+    paths: ["~/Library/Caches/org.swift.swiftpm"]
+    explanation: >-
+      Cloned package repositories and downloaded artifacts. SwiftPM fetches them
+      again when resolving packages.
+    examples: ["~/Library/Caches/org.swift.swiftpm"]
+
+  - id: cocoapods-cache
+    name: CocoaPods cache
+    category: xcode
+    safety: regenerable
+    paths: ["~/Library/Caches/CocoaPods"]
+    explanation: >-
+      Downloaded pod sources and specs. `pod install` downloads them again.
+    examples: ["~/Library/Caches/CocoaPods"]
+
+  - id: carthage-cache
+    name: Carthage cache
+    category: xcode
+    safety: regenerable
+    paths: ["~/Library/Caches/org.carthage.CarthageKit"]
+    explanation: >-
+      Cloned dependencies and prebuilt binaries cached by Carthage. They are
+      fetched again on the next `carthage bootstrap`.
+    examples: ["~/Library/Caches/org.carthage.CarthageKit"]
+
+  # --------------------------------------------------------------- JavaScript
+  - id: npm-cache
+    name: npm cache
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/.npm/_cacache"
+      - "~/.npm/_npx"
+      - "~/.npm/_logs"
+    explanation: >-
+      Every package tarball npm has downloaded, plus npx installs and logs.
+      Projects keep working; npm downloads packages again when needed (same as
+      `npm cache clean --force`).
+    examples: ["~/.npm/_cacache", "~/.npm/_npx"]
+
+  - id: yarn-cache
+    name: Yarn cache
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/Library/Caches/Yarn"
+      - "~/.yarn/berry/cache"
+    explanation: >-
+      Package archives cached by Yarn classic and Yarn Berry. Yarn downloads them
+      again on the next install.
+    examples: ["~/Library/Caches/Yarn", "~/.yarn/berry/cache"]
+
+  - id: pnpm-store
+    name: pnpm store
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/Library/pnpm/store"
+      - "~/.local/share/pnpm/store"
+      - "~/.pnpm-store"
+    prefer_command:
+      argv: [pnpm, store, prune]
+      description: Removes only packages no project references any more.
+    explanation: >-
+      pnpm's content-addressed store. node_modules folders hardlink into it, so
+      deleting it frees less than shown until projects reinstall. `pnpm store
+      prune` removes only unreferenced packages.
+    examples: ["~/Library/pnpm/store", "~/.pnpm-store"]
+
+  - id: bun-cache
+    name: Bun cache
+    category: javascript
+    safety: regenerable
+    paths: ["~/.bun/install/cache"]
+    explanation: >-
+      Packages cached by `bun install`. Bun downloads them again when needed.
+    examples: ["~/.bun/install/cache"]
+
+  - id: node-gyp-cache
+    name: node-gyp headers
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/Library/Caches/node-gyp"
+      - "~/.node-gyp"
+    explanation: >-
+      Node.js headers downloaded to compile native addons. node-gyp downloads them
+      again for the next native build.
+    examples: ["~/Library/Caches/node-gyp"]
+
+  - id: nvm-cache
+    name: nvm download cache
+    category: javascript
+    safety: regenerable
+    paths: ["~/.nvm/.cache"]
+    explanation: >-
+      Node.js tarballs nvm downloaded while installing versions. Installed Node
+      versions are not affected.
+    examples: ["~/.nvm/.cache"]
+
+  - id: js-tooling-caches
+    name: JavaScript tooling caches
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/Library/Caches/deno"
+      - "~/Library/Caches/typescript"
+      - "~/Library/Caches/electron"
+      - "~/Library/Caches/electron-builder"
+    explanation: >-
+      Caches of Deno, the TypeScript language service, Electron and
+      electron-builder downloads. Each tool downloads or rebuilds them on demand.
+    examples: ["~/Library/Caches/deno", "~/Library/Caches/electron"]
+
+  - id: browser-test-runtimes
+    name: Browser testing downloads
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/Library/Caches/ms-playwright"
+      - "~/Library/Caches/Cypress"
+      - "~/.cache/puppeteer"
+    explanation: >-
+      Browser builds downloaded by Playwright, Cypress and Puppeteer. Run
+      `npx playwright install` (or reinstall Cypress/Puppeteer) to get them back.
+    examples: ["~/Library/Caches/ms-playwright", "~/.cache/puppeteer"]
+
+  # ---------------------------------------------------------- Java & Android
+  - id: gradle-caches
+    name: Gradle caches
+    category: jvm
+    safety: regenerable
+    paths:
+      - "~/.gradle/caches"
+      - "~/.gradle/daemon"
+    explanation: >-
+      Downloaded dependencies, build cache and daemon logs. Gradle downloads what
+      it needs on the next build. Run `./gradlew --stop` first.
+    examples: ["~/.gradle/caches", "~/.gradle/daemon"]
+
+  - id: gradle-wrapper
+    name: Gradle wrapper distributions
+    category: jvm
+    safety: regenerable
+    paths: ["~/.gradle/wrapper/dists/*"]
+    explanation: >-
+      Full Gradle distributions downloaded by `./gradlew`, one per version. The
+      wrapper downloads the version a project needs again.
+    examples: ["~/.gradle/wrapper/dists/gradle-8.7-bin"]
+
+  - id: maven-repository
+    name: Maven local repository
+    category: jvm
+    safety: regenerable
+    paths: ["~/.m2/repository"]
+    explanation: >-
+      Artifacts downloaded by Maven (and some Gradle builds). Maven downloads them
+      again. Artifacts you installed locally with `mvn install` would need a rebuild.
+    examples: ["~/.m2/repository"]
+
+  - id: android-build-cache
+    name: Android build cache
+    category: jvm
+    safety: regenerable
+    paths: ["~/.android/cache", "~/.android/build-cache"]
+    explanation: >-
+      Android Gradle plugin and SDK manager caches. They are rebuilt on demand.
+    examples: ["~/.android/cache"]
+
+  - id: android-emulators
+    name: Android emulators
+    category: jvm
+    safety: review
+    paths: ["~/.android/avd/*.avd"]
+    explanation: >-
+      Android Virtual Devices, including their installed apps and data. Recreate
+      them in Android Studio's Device Manager. Close the emulator first.
+    requires_no_process: [emulator, qemu-system-aarch64, qemu-system-x86_64]
+    examples: ["~/.android/avd/Pixel_8_API_35.avd"]
+
+  # ------------------------------------------------------------------ Python
+  - id: pip-cache
+    name: pip cache
+    category: python
+    safety: regenerable
+    paths: ["~/Library/Caches/pip"]
+    explanation: >-
+      Wheels and downloads cached by pip. Same as `pip cache purge`; packages are
+      downloaded again on the next install.
+    examples: ["~/Library/Caches/pip"]
+
+  - id: uv-cache
+    name: uv cache
+    category: python
+    safety: regenerable
+    paths: ["~/.cache/uv"]
+    explanation: >-
+      Packages and Python builds cached by uv. Same as `uv cache clean`. Virtual
+      environments created by uv keep working.
+    examples: ["~/.cache/uv"]
+
+  - id: poetry-cache
+    name: Poetry cache
+    category: python
+    safety: regenerable
+    paths: ["~/Library/Caches/pypoetry"]
+    explanation: >-
+      Package archives and metadata cached by Poetry. Poetry downloads them again.
+    examples: ["~/Library/Caches/pypoetry"]
+
+  - id: conda-packages
+    name: Conda package cache
+    category: python
+    safety: regenerable
+    paths: ["~/{miniconda3,anaconda3,miniforge3,mambaforge,.conda}/pkgs"]
+    prefer_command:
+      argv: [conda, clean, --all, --yes]
+      description: Removes unused packages and tarballs from the conda cache.
+    explanation: >-
+      Downloaded package tarballs and extracted packages. Packages used by an
+      environment are hardlinked, so `conda clean --all` is the safe way to trim it.
+    examples: ["~/miniconda3/pkgs", "~/.conda/pkgs"]
+
+  - id: pre-commit-cache
+    name: pre-commit environments
+    category: python
+    safety: regenerable
+    paths: ["~/.cache/pre-commit"]
+    explanation: >-
+      Hook environments built by pre-commit. They are rebuilt the next time hooks run.
+    examples: ["~/.cache/pre-commit"]
+
+  # --------------------------------------------------------------- Rust & Go
+  - id: cargo-registry
+    name: Cargo registry cache
+    category: rust-go
+    safety: regenerable
+    paths:
+      - "~/.cargo/registry/{cache,src}"
+      - "~/.cargo/git/{checkouts,db}"
+    explanation: >-
+      Downloaded crates and git dependencies. Cargo downloads them again on the
+      next build. Installed binaries in ~/.cargo/bin are not touched.
+    requires_no_process: [cargo, rust-analyzer]
+    examples: ["~/.cargo/registry/cache", "~/.cargo/git/checkouts"]
+
+  - id: rustup-toolchains
+    name: Rust toolchains
+    category: rust-go
+    safety: review
+    paths: ["~/.rustup/toolchains/*"]
+    explanation: >-
+      Installed Rust toolchains. Keep the ones you build with; remove old
+      nightlies with `rustup toolchain uninstall <name>`.
+    examples: ["~/.rustup/toolchains/nightly-2025-01-01-aarch64-apple-darwin"]
+
+  - id: go-build-cache
+    name: Go build cache
+    category: rust-go
+    safety: regenerable
+    paths: ["~/Library/Caches/go-build"]
+    explanation: >-
+      Compiled packages cached by `go build`. Same as `go clean -cache`.
+    examples: ["~/Library/Caches/go-build"]
+
+  - id: go-module-cache
+    name: Go module cache
+    category: rust-go
+    safety: regenerable
+    paths: ["~/go/pkg/mod"]
+    prefer_command:
+      argv: [go, clean, -modcache]
+      description: Removes the Go module download cache.
+    explanation: >-
+      Downloaded Go modules. They are read-only on disk, so OpenDisk uses
+      `go clean -modcache`. Modules are downloaded again on the next build.
+    examples: ["~/go/pkg/mod"]
+
+  # -------------------------------------------------------------- Containers
+  - id: docker-desktop-disk
+    name: Docker Desktop disk image
+    category: containers
+    safety: personal
+    kind: file
+    paths: ["~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw"]
+    prefer_command:
+      argv: [docker, system, prune, --force]
+      description: Removes stopped containers, unused networks, dangling images and build cache.
+    explanation: >-
+      The virtual disk holding every Docker image, container and volume. Volumes
+      may contain databases. OpenDisk runs `docker system prune` instead of
+      deleting it; Docker Desktop then shrinks the file over time.
+    examples: ["~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw"]
+
+  # ---------------------------------------------------------------- Homebrew
+  - id: homebrew-cache
+    name: Homebrew downloads
+    category: homebrew
+    safety: regenerable
+    paths: ["~/Library/Caches/Homebrew"]
+    prefer_command:
+      argv: [brew, cleanup, --prune=all]
+      description: Removes old versions and all cached downloads.
+    explanation: >-
+      Bottles and source archives downloaded by Homebrew. Installed packages are
+      not affected.
+    examples: ["~/Library/Caches/Homebrew"]
+
+  # -------------------------------------------------------------- App caches
+  - id: jetbrains-caches
+    name: JetBrains IDE caches
+    category: app-caches
+    safety: regenerable
+    paths: ["~/Library/Caches/JetBrains/*"]
+    explanation: >-
+      Indexes and caches of IntelliJ, PyCharm, Android Studio and other JetBrains
+      IDEs, one folder per version (old versions pile up). Rebuilt when the IDE
+      reopens a project.
+    examples: ["~/Library/Caches/JetBrains/IntelliJIdea2024.1"]
+
+  - id: vscode-caches
+    name: VS Code caches
+    category: app-caches
+    safety: regenerable
+    paths:
+      - "~/Library/Application Support/Code/{Cache,CachedData,CachedExtensionVSIXs,Code Cache,GPUCache,logs}"
+      - "~/Library/Application Support/Code/Service Worker/CacheStorage"
+    explanation: >-
+      Electron caches, old-version update data and logs of Visual Studio Code.
+      Settings and extensions are not touched. Quit VS Code first.
+    requires_closed: [com.microsoft.VSCode]
+    examples: ["~/Library/Application Support/Code/CachedData", "~/Library/Application Support/Code/Code Cache"]
+
+  - id: cursor-caches
+    name: Cursor caches
+    category: app-caches
+    safety: regenerable
+    paths:
+      - "~/Library/Application Support/Cursor/{Cache,CachedData,CachedExtensionVSIXs,Code Cache,GPUCache,logs}"
+      - "~/Library/Application Support/Cursor/Service Worker/CacheStorage"
+    explanation: >-
+      Electron caches and logs of the Cursor editor. Settings and extensions are
+      not touched. Quit Cursor first.
+    requires_closed: [com.todesktop.230313mzl4w4u92]
+    examples: ["~/Library/Application Support/Cursor/CachedData"]
+
+  - id: slack-caches
+    name: Slack caches
+    category: app-caches
+    safety: regenerable
+    paths:
+      - "~/Library/Application Support/Slack/{Cache,Code Cache,GPUCache}"
+      - "~/Library/Application Support/Slack/Service Worker/CacheStorage"
+      - "~/Library/Containers/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/{Cache,Code Cache,GPUCache}"
+      - "~/Library/Containers/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/Service Worker/CacheStorage"
+    explanation: >-
+      Cached images, files and web code from Slack. Messages live on Slack's
+      servers and are downloaded again. Quit Slack first.
+    requires_closed: [com.tinyspeck.slackmacgap]
+    examples:
+      - "~/Library/Application Support/Slack/Service Worker/CacheStorage"
+      - "~/Library/Containers/com.tinyspeck.slackmacgap/Data/Library/Application Support/Slack/Cache"
+
+  - id: discord-caches
+    name: Discord caches
+    category: app-caches
+    safety: regenerable
+    paths: ["~/Library/Application Support/discord/{Cache,Code Cache,GPUCache}"]
+    explanation: >-
+      Cached images, videos and web code from Discord. Downloaded again as you
+      browse. Quit Discord first.
+    requires_closed: [com.hnc.Discord]
+    examples: ["~/Library/Application Support/discord/Cache"]
+
+  - id: teams-caches
+    name: Microsoft Teams caches
+    category: app-caches
+    safety: regenerable
+    paths:
+      - "~/Library/Containers/com.microsoft.teams2/Data/Library/Caches/*"
+      - "~/Library/Application Support/Microsoft/Teams/{Cache,Code Cache,GPUCache}"
+      - "~/Library/Application Support/Microsoft/Teams/Service Worker/CacheStorage"
+    explanation: >-
+      Web caches of new and classic Microsoft Teams. Chats and files are on
+      Microsoft's servers. Quit Teams first.
+    requires_closed: [com.microsoft.teams2, com.microsoft.teams]
+    examples:
+      - "~/Library/Containers/com.microsoft.teams2/Data/Library/Caches/com.microsoft.teams2"
+      - "~/Library/Application Support/Microsoft/Teams/Cache"
+
+  - id: spotify-cache
+    name: Spotify offline cache
+    category: app-caches
+    safety: regenerable
+    paths: ["~/Library/Application Support/Spotify/PersistentCache"]
+    explanation: >-
+      Songs Spotify cached while streaming. Downloaded playlists may need to be
+      downloaded again. Quit Spotify first.
+    requires_closed: [com.spotify.client]
+    examples: ["~/Library/Application Support/Spotify/PersistentCache"]
+
+  - id: user-caches
+    name: Application caches
+    category: app-caches
+    safety: regenerable
+    priority: 10
+    paths: ["~/Library/Caches/*"]
+    exclude:
+      - "~/Library/Caches/com.apple.*"
+      - "~/Library/Caches/CloudKit"
+      - "~/Library/Caches/FamilyCircle"
+      - "~/Library/Caches/GeoServices"
+      - "~/Library/Caches/Metadata"
+    bundle_id_component: 2
+    explanation: >-
+      Per-app caches in ~/Library/Caches. macOS itself may purge this folder when
+      space runs low, and apps rebuild what they need. Apple's own caches are
+      skipped. The owning app must be closed.
+    examples: ["~/Library/Caches/com.example.editor", "~/Library/Caches/Google"]
+    non_examples: ["~/Library/Caches/com.apple.Safari", "~/Library/Caches/CloudKit"]
+
+  - id: container-caches
+    name: Sandboxed app caches
+    category: app-caches
+    safety: regenerable
+    priority: 10
+    paths: ["~/Library/Containers/*/Data/Library/Caches/*"]
+    bundle_id_component: 2
+    explanation: >-
+      Caches inside sandboxed (mostly App Store) apps' containers. The app
+      rebuilds them. Apple's own app containers are never touched.
+    examples: ["~/Library/Containers/com.example.reader/Data/Library/Caches/com.example.reader"]
+    non_examples: ["~/Library/Containers/com.apple.Notes/Data/Library/Caches/com.apple.Notes"]
+
+  - id: dot-cache
+    name: Command-line tool caches
+    category: app-caches
+    safety: review
+    priority: 10
+    paths: ["~/.cache/*"]
+    explanation: >-
+      Caches written by command-line tools under ~/.cache (XDG cache folder). Most
+      tools rebuild them, but some keep state here, so they go to the Trash.
+    examples: ["~/.cache/some-cli-tool"]
+
+  # ---------------------------------------------------------------- Browsers
+  - id: chrome-caches
+    name: Google Chrome caches
+    category: browsers
+    safety: regenerable
+    paths:
+      - "~/Library/Application Support/Google/Chrome/*/{Cache,Code Cache,GPUCache}"
+      - "~/Library/Application Support/Google/Chrome/*/Service Worker/CacheStorage"
+    explanation: >-
+      Per-profile code, GPU and service worker caches. Bookmarks, history,
+      passwords and cookies are not touched. Quit Chrome first.
+    requires_closed: [com.google.Chrome]
+    examples:
+      - "~/Library/Application Support/Google/Chrome/Default/Service Worker/CacheStorage"
+      - "~/Library/Application Support/Google/Chrome/Profile 1/Code Cache"
+
+  - id: edge-caches
+    name: Microsoft Edge caches
+    category: browsers
+    safety: regenerable
+    paths:
+      - "~/Library/Application Support/Microsoft Edge/*/{Cache,Code Cache,GPUCache}"
+      - "~/Library/Application Support/Microsoft Edge/*/Service Worker/CacheStorage"
+    explanation: >-
+      Per-profile code, GPU and service worker caches of Edge. Browsing data you
+      care about is not touched. Quit Edge first.
+    requires_closed: [com.microsoft.edgemac]
+    examples: ["~/Library/Application Support/Microsoft Edge/Default/Code Cache"]
+
+  - id: brave-caches
+    name: Brave caches
+    category: browsers
+    safety: regenerable
+    paths:
+      - "~/Library/Application Support/BraveSoftware/Brave-Browser/*/{Cache,Code Cache,GPUCache}"
+      - "~/Library/Application Support/BraveSoftware/Brave-Browser/*/Service Worker/CacheStorage"
+    explanation: >-
+      Per-profile code, GPU and service worker caches of Brave. Quit Brave first.
+    requires_closed: [com.brave.Browser]
+    examples: ["~/Library/Application Support/BraveSoftware/Brave-Browser/Default/GPUCache"]
+
+  - id: arc-caches
+    name: Arc caches
+    category: browsers
+    safety: regenerable
+    paths:
+      - "~/Library/Application Support/Arc/User Data/*/{Cache,Code Cache,GPUCache}"
+      - "~/Library/Application Support/Arc/User Data/*/Service Worker/CacheStorage"
+    explanation: >-
+      Per-profile code, GPU and service worker caches of Arc. Quit Arc first.
+    requires_closed: [company.thebrowser.Browser]
+    examples: ["~/Library/Application Support/Arc/User Data/Default/Code Cache"]
+
+  - id: firefox-cache
+    name: Firefox cache
+    category: browsers
+    safety: regenerable
+    paths: ["~/Library/Caches/Firefox/Profiles/*/cache2"]
+    explanation: >-
+      Firefox's web cache for each profile. Quit Firefox first.
+    requires_closed: [org.mozilla.firefox]
+    examples: ["~/Library/Caches/Firefox/Profiles/abcd1234.default-release/cache2"]
+
+  # -------------------------------------------------------------------- Logs
+  - id: user-logs
+    name: Application logs
+    category: logs
+    safety: review
+    priority: 10
+    paths: ["~/Library/Logs/*"]
+    explanation: >-
+      Log files and crash reports written by apps. Useful when debugging a crash,
+      otherwise safe to remove; apps create new ones.
+    examples: ["~/Library/Logs/JetBrains", "~/Library/Logs/DiagnosticReports"]
+
+  # --------------------------------------------------------------- Downloads
+  - id: old-installers
+    name: Old installers in Downloads
+    category: downloads
+    safety: review
+    kind: file
+    min_age_days: 30
+    paths: ["~/Downloads/*.{dmg,pkg,iso,xip,mpkg}"]
+    explanation: >-
+      Disk images and installer packages downloaded more than 30 days ago. Once
+      the app is installed they are usually not needed.
+    examples: ["~/Downloads/Docker.dmg", "~/Downloads/Xcode_16.xip"]
+    non_examples: ["~/Downloads/report.pdf"]
+
+  # ----------------------------------------------------------------- Backups
+  - id: ios-backups
+    name: iPhone and iPad backups
+    category: backups
+    safety: personal
+    paths: ["~/Library/Application Support/MobileSync/Backup/*"]
+    explanation: >-
+      Local backups made by Finder or iTunes. They may be the only copy of a
+      device's data. Check the date and device in Finder before removing one.
+    examples: ["~/Library/Application Support/MobileSync/Backup/00008110-001234560A12801E"]
+
+  - id: ios-software-updates
+    name: iOS firmware downloads
+    category: backups
+    safety: regenerable
+    kind: file
+    paths:
+      - "~/Library/iTunes/{iPhone,iPad,iPod} Software Updates/*.ipsw"
+    explanation: >-
+      Device firmware files downloaded to restore or update an iPhone or iPad.
+      Finder downloads the current version again when needed.
+    examples: ["~/Library/iTunes/iPhone Software Updates/iPhone15,2_18.0_22A3354_Restore.ipsw"]
+
+  # ------------------------------------------------------------------- Trash
+  - id: trash
+    name: Trash
+    category: trash
+    safety: personal
+    permanent: true
+    paths: ["~/.Trash/*"]
+    explanation: >-
+      Items you already moved to the Trash. Emptying it deletes them for good;
+      this is the only action in OpenDisk that cannot be undone.
+    examples: ["~/.Trash/old-project", "~/.Trash/.hidden-file"]
