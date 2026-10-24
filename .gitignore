@@ -8,3 +8,4 @@ node_modules/
 .vite/
 /docs/.vitepress/dist/
 /docs/.vitepress/cache/
+/dist-linux/

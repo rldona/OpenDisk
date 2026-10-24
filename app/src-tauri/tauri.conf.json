@@ -29,6 +29,7 @@
     "targets": ["app", "dmg"],
     "category": "Utility",
     "shortDescription": "Find what fills your disk and free space safely",
+    "longDescription": "OpenDisk scans your home folder, shows a disk map that includes hidden folders and explains every cache it finds (developer tools, AI models, browsers, apps). It cleans only what you pick, after a preview, and moves most things to the Trash so they can be put back.",
     "copyright": "Copyright (c) 2026 Raúl López. MIT License.",
     "icon": [
       "icons/32x32.png",
