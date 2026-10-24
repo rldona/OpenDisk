@@ -20,7 +20,7 @@ function useSize<T extends HTMLElement>() {
 }
 
 /** Disk map of the last scan, hidden folders included, two levels at a time. */
-export function Treemap({ home, root }: { home: string; root: string }) {
+export function Treemap({ home, fileManager, root }: { home: string; fileManager: string; root: string }) {
   const [path, setPath] = useState(root);
   const [tree, setTree] = useState<TreeNode | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -123,7 +123,7 @@ export function Treemap({ home, root }: { home: string; root: string }) {
           );
         })}
       </div>
-      <p className="hint">Click a block to open it. Folders starting with a dot are hidden in Finder but count here.</p>
+      <p className="hint">Click a block to open it. Folders starting with a dot are hidden in {fileManager} but count here.</p>
     </div>
   );
 }

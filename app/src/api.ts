@@ -8,6 +8,8 @@ export interface AppInfo {
   home: string;
   version: string;
   data_volume: string;
+  /** `std::env::consts::OS`: "macos" or "linux". */
+  os: string;
 }
 
 export interface DiskInfo {

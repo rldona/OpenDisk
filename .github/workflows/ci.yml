@@ -5,6 +5,7 @@ on:
     branches: [main]
     tags: ['v*']
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,8 +19,12 @@ env:
 
 jobs:
   rust:
-    name: Rust (fmt, clippy, tests)
-    runs-on: macos-latest
+    name: Rust (fmt, clippy, tests) on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-22.04]
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -58,8 +63,6 @@ jobs:
     name: macOS app bundle (unsigned)
     runs-on: macos-latest
     needs: [rust, frontend]
-    permissions:
-      contents: write # to publish a release when a v* tag is pushed
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -87,8 +90,65 @@ jobs:
             target/universal-apple-darwin/release/bundle/dmg/*.dmg
             target/universal-apple-darwin/release/bundle/macos/*.app
           if-no-files-found: error
-      - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
+
+  linux-app:
+    name: Linux .deb (Ubuntu 22.04+)
+    # 22.04 so the .deb links against an older glibc and installs on 22.04 and 24.04.
+    runs-on: ubuntu-22.04
+    needs: [rust, frontend]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install WebKitGTK and build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev patchelf
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: npm ci
+        working-directory: app
+      - run: npm run build
+        working-directory: app
+      - run: cargo clippy -p opendisk-app --all-targets -- -D warnings
+      - name: Build .deb
+        working-directory: app
+        run: npx tauri build --bundles deb
+      - name: Check the package
+        run: |
+          deb=$(ls target/release/bundle/deb/*.deb)
+          dpkg-deb --info "$deb"
+          dpkg-deb --contents "$deb"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OpenDisk-linux-amd64-deb
+          path: target/release/bundle/deb/*.deb
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    needs: [macos-app, linux-app]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+      - name: Create the release, or add the files to an existing one
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" target/universal-apple-darwin/release/bundle/dmg/*.dmg --generate-notes --title "OpenDisk $GITHUB_REF_NAME"
+          GH_REPO: ${{ github.repository }}
+        run: |
+          files=$(find dist -name '*.dmg' -o -name '*.deb')
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" $files --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" $files --generate-notes --title "OpenDisk $GITHUB_REF_NAME"
+          fi

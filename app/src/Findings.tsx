@@ -26,12 +26,14 @@ export function SafetyBadge({ safety }: { safety: Safety }) {
 
 interface Props {
   home: string;
+  /** "Finder" on macOS, "Files" on Linux. */
+  fileManager: string;
   findings: Finding[];
   selected: Map<string, Selection>;
   onChange: (next: Map<string, Selection>) => void;
 }
 
-export function Findings({ home, findings, selected, onChange }: Props) {
+export function Findings({ home, fileManager, findings, selected, onChange }: Props) {
   const [open, setOpen] = useState<Set<string>>(new Set());
 
   const groups = useMemo(() => {
@@ -129,7 +131,7 @@ export function Findings({ home, findings, selected, onChange }: Props) {
                           </span>
                         )}
                         <button className="ghost small" onClick={() => api.revealPath(i.path)}>
-                          Show in Finder
+                          Show in {fileManager}
                         </button>
                         <span className="size">{formatBytes(i.bytes)}</span>
                       </li>

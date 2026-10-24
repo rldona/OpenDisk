@@ -39,6 +39,7 @@ struct AppInfo {
     home: String,
     version: &'static str,
     data_volume: &'static str,
+    os: &'static str,
 }
 
 #[tauri::command]
@@ -46,7 +47,12 @@ fn app_info(state: State<'_, AppState>) -> AppInfo {
     AppInfo {
         home: state.home.to_string_lossy().into_owned(),
         version: env!("CARGO_PKG_VERSION"),
-        data_volume: "/System/Volumes/Data",
+        data_volume: if cfg!(target_os = "macos") {
+            "/System/Volumes/Data"
+        } else {
+            "/"
+        },
+        os: std::env::consts::OS,
     }
 }
 
@@ -341,11 +347,24 @@ fn reveal_path(state: State<'_, AppState>, path: String) -> CmdResult<()> {
     if !paths::is_normalized_absolute(&p) || !p.starts_with(&state.home) {
         return Err("can only reveal paths inside the home folder".into());
     }
-    std::process::Command::new("/usr/bin/open")
-        .arg("-R")
-        .arg(&p)
-        .status()
-        .map_err(err)?;
+    if cfg!(target_os = "macos") {
+        std::process::Command::new("/usr/bin/open")
+            .arg("-R")
+            .arg(&p)
+            .status()
+            .map_err(err)?;
+    } else {
+        // xdg-open can't select an item, so open the folder that holds it.
+        let folder = if p.is_dir() {
+            p.as_path()
+        } else {
+            p.parent().unwrap_or(&p)
+        };
+        std::process::Command::new("xdg-open")
+            .arg(folder)
+            .spawn()
+            .map_err(err)?;
+    }
     Ok(())
 }
 

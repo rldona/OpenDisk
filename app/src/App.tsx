@@ -98,6 +98,8 @@ export default function App() {
   };
 
   const home = info?.home ?? "";
+  const isMac = (info?.os ?? "macos") === "macos";
+  const fileManager = isMac ? "Finder" : "Files";
   const used = disk ? disk.total - disk.available : 0;
 
   return (
@@ -231,7 +233,7 @@ export default function App() {
                 [
                   ["findings", "Findings"],
                   ["map", "Disk map"],
-                  ["snapshots", "Snapshots"],
+                  ...(isMac ? ([["snapshots", "Snapshots"]] as const) : []),
                 ] as const
               ).map(([id, label]) => (
                 <button key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
@@ -240,9 +242,15 @@ export default function App() {
               ))}
             </nav>
             {tab === "findings" && (
-              <Findings home={home} findings={findings} selected={selected} onChange={setSelected} />
+              <Findings
+                home={home}
+                fileManager={fileManager}
+                findings={findings}
+                selected={selected}
+                onChange={setSelected}
+              />
             )}
-            {tab === "map" && <Treemap home={home} root={done.root} />}
+            {tab === "map" && <Treemap home={home} fileManager={fileManager} root={done.root} />}
             {tab === "snapshots" && <Snapshots />}
           </>
         )}

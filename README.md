@@ -19,7 +19,9 @@ A universal **macOS (.dmg)** for Apple silicon and Intel is built by GitHub Acti
 artifact of the [CI workflow](https://github.com/rldona/OpenDisk/actions/workflows/ci.yml). They are not yet signed
 with an Apple Developer ID, so the first launch shows a system warning; the
 [getting started guide](https://rldona.github.io/OpenDisk/guide/getting-started) explains how to open it.
-Windows and Linux are planned.
+
+A **Linux .deb** for Ubuntu 22.04 and later (amd64) comes with the same releases and is the `OpenDisk-linux-amd64-deb`
+artifact of each CI run. Install it with `sudo apt install ./OpenDisk_*_amd64.deb`. Windows is planned.
 
 ## Manual
 
@@ -103,7 +105,8 @@ docs/                  user manual
 
 ## Limitations (MVP)
 
-- macOS only for now; Windows and Linux are planned
+- macOS and Linux (Ubuntu .deb) for now; Windows is planned. On Linux there are no APFS snapshots, the owning app is
+  detected by process name only, and only the home folder's Trash is used
 - Not signed with an Apple Developer ID or notarized yet
 - Cleans inside your home folder only; system-level space is left to official tools such as `tmutil`
 - The scan history is recorded but "what grew since the last scan" is not shown yet
