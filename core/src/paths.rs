@@ -70,6 +70,27 @@ const HOME_DENY_INSIDE: &[&str] = &[
     ".gnupg",
     ".config",
     ".git",
+    ".local/share/keyrings",
+    ".password-store",
+    ".pki",
+    ".mozilla",
+    ".thunderbird",
+];
+
+/// Folder names that hold rebuildable Chromium/Electron data. On Linux these
+/// apps keep their caches in `~/.config/<app>/`, so these subfolders are the
+/// only part of `~/.config` that may be cleaned.
+const CONFIG_CACHE_DIRS: &[&str] = &[
+    "Cache",
+    "Code Cache",
+    "GPUCache",
+    "CachedData",
+    "CachedExtensionVSIXs",
+    "CacheStorage",
+    "DawnCache",
+    "GrShaderCache",
+    "ShaderCache",
+    "logs",
 ];
 
 /// Home-relative folders that may contain cleanable items but must never be
@@ -94,6 +115,12 @@ const HOME_DENY_EXACT: &[&str] = &[
     ".cache",
     ".local",
     ".local/share",
+    ".local/share/Trash",
+    ".local/share/Trash/files",
+    ".local/share/Trash/info",
+    ".config",
+    ".var",
+    "snap",
 ];
 
 /// Returns why `path` must not be deleted, or `None` if the denylist allows it.
@@ -118,6 +145,9 @@ pub fn deny_reason(path: &Path, home: &Path) -> Option<String> {
         }
     }
     for inside in HOME_DENY_INSIDE {
+        if *inside == ".config" && is_config_cache(rel) {
+            continue;
+        }
         if rel.starts_with(inside) {
             return Some(format!("~/{inside} holds personal data or credentials"));
         }
@@ -130,6 +160,12 @@ pub fn deny_reason(path: &Path, home: &Path) -> Option<String> {
         return Some("Apple app container".into());
     }
     None
+}
+
+/// `~/.config/<app>/.../<cache folder>` (see [`CONFIG_CACHE_DIRS`]).
+fn is_config_cache(rel: &Path) -> bool {
+    let mut comps = rel.components().skip(1).map(|c| c.as_os_str());
+    comps.next().is_some() && comps.any(|c| CONFIG_CACHE_DIRS.iter().any(|d| c == *d))
 }
 
 /// Checks that no ancestor of `path` (below `/`) is a symlink, so the path
@@ -179,6 +215,22 @@ mod tests {
         assert!(deny_reason(Path::new("/Users/other/Library/Caches/x"), home).is_some());
         assert!(deny_reason(Path::new("/Users/me/Library/Caches/com.foo"), home).is_none());
         assert!(deny_reason(Path::new("/Users/me/.npm/_cacache"), home).is_none());
+    }
+
+    #[test]
+    fn config_caches() {
+        assert!(is_config_cache(Path::new(".config/Code/Cache")));
+        assert!(is_config_cache(Path::new(
+            ".config/google-chrome/Default/Service Worker/CacheStorage"
+        )));
+        assert!(!is_config_cache(Path::new(".config/Code/User/settings.json")));
+        assert!(!is_config_cache(Path::new(".config/Cache")));
+        let home = Path::new("/home/me");
+        assert!(deny_reason(Path::new("/home/me/.config"), home).is_some());
+        assert!(deny_reason(Path::new("/home/me/.config/Code/User"), home).is_some());
+        assert!(deny_reason(Path::new("/home/me/.local/share/Trash"), home).is_some());
+        assert!(deny_reason(Path::new("/home/me/.local/share/keyrings/login.keyring"), home).is_some());
+        assert!(deny_reason(Path::new("/home/me/.config/Code/Cache"), home).is_none());
     }
 
     #[test]

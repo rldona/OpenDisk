@@ -39,8 +39,16 @@ fn is_file_example(kind: MatchKind, example: &str) -> bool {
 }
 
 #[test]
-fn every_rule_claims_its_examples() {
-    let rules = RuleSet::builtin();
+fn every_macos_rule_claims_its_examples() {
+    check_examples(RuleSet::macos());
+}
+
+#[test]
+fn every_linux_rule_claims_its_examples() {
+    check_examples(RuleSet::linux());
+}
+
+fn check_examples(rules: &RuleSet) {
     let (_tmp, home) = fake_home();
     for rule in &rules.rules {
         for ex in rule.examples.iter().chain(&rule.non_examples) {
@@ -75,7 +83,7 @@ fn every_rule_claims_its_examples() {
 
 #[test]
 fn symlinked_folders_are_never_matched_or_followed() {
-    let rules = RuleSet::builtin();
+    let rules = RuleSet::macos();
     let (tmp, home) = fake_home();
     // A real folder outside home that a symlink in home points to.
     let outside = tmp.path().join("outside-data");
@@ -101,7 +109,7 @@ fn symlinked_folders_are_never_matched_or_followed() {
 
 #[test]
 fn young_installers_are_left_alone() {
-    let rules = RuleSet::builtin();
+    let rules = RuleSet::macos();
     let (_tmp, home) = fake_home();
     let dmg = home.join("Downloads/New.dmg");
     fs::create_dir_all(dmg.parent().unwrap()).unwrap();
@@ -112,7 +120,7 @@ fn young_installers_are_left_alone() {
 
 #[test]
 fn findings_sorted_and_sized() {
-    let rules = RuleSet::builtin();
+    let rules = RuleSet::macos();
     let (_tmp, home) = fake_home();
     materialize(&home.join(".npm/_cacache"), false);
     fs::write(home.join(".npm/_cacache/more.bin"), vec![0u8; 1 << 20]).unwrap();

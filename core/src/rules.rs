@@ -183,8 +183,23 @@ impl RuleSet {
 
     /// The rules shipped with OpenDisk for the current platform.
     pub fn builtin() -> &'static RuleSet {
+        if cfg!(target_os = "macos") {
+            Self::macos()
+        } else {
+            Self::linux()
+        }
+    }
+
+    /// The macOS rules (`rules/macos.yaml`), available on every platform for tests.
+    pub fn macos() -> &'static RuleSet {
         static SET: OnceLock<RuleSet> = OnceLock::new();
         SET.get_or_init(|| RuleSet::from_yaml(include_str!("../rules/macos.yaml")).expect("built-in rules are valid"))
+    }
+
+    /// The Linux rules (`rules/linux.yaml`), available on every platform for tests.
+    pub fn linux() -> &'static RuleSet {
+        static SET: OnceLock<RuleSet> = OnceLock::new();
+        SET.get_or_init(|| RuleSet::from_yaml(include_str!("../rules/linux.yaml")).expect("built-in rules are valid"))
     }
 
     pub fn get(&self, id: &str) -> Option<&Rule> {

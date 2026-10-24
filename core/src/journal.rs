@@ -99,6 +99,9 @@ impl Journal {
             } else {
                 fs::rename(from, &e.path).map_err(|err| err.to_string())
             };
+            if result.is_ok() {
+                crate::system::forget_trash_info(from);
+            }
             match result {
                 Ok(()) => {
                     self.append(&JournalEntry {

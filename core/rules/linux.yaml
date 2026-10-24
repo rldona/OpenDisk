@@ -1,0 +1,611 @@
+# OpenDisk cleaning rules for Linux (tested on Ubuntu).
+#
+# Same format as macos.yaml. Linux has no app bundle IDs, so rules name the
+# processes that must not be running (`requires_no_process`, as printed by
+# `ps -e -o comm=`, at most 15 characters).
+#
+# Paths follow the XDG defaults: caches in ~/.cache, data in ~/.local/share,
+# Electron/Chromium apps in ~/.config/<app>/ (only their cache folders are
+# allowed there by the denylist).
+version: 1
+rules:
+  # ---------------------------------------------------------------- AI models
+  - id: gpt4all-models
+    name: GPT4All models
+    category: ai-models
+    safety: review
+    kind: file
+    paths:
+      - "~/.local/share/nomic.ai/GPT4All/*.{gguf,bin}"
+    explanation: >-
+      Local language models downloaded by GPT4All (often 4-8 GB each). You can
+      download them again from the app's model list. Quit GPT4All first.
+    requires_no_process: [gpt4all, chat]
+    examples: ["~/.local/share/nomic.ai/GPT4All/mistral-7b.Q4_0.gguf"]
+    non_examples: ["~/.local/share/nomic.ai/GPT4All/localdocs_v2.db"]
+
+  - id: ollama-models
+    name: Ollama models
+    category: ai-models
+    safety: review
+    paths: ["~/.ollama/models"]
+    explanation: >-
+      Models pulled with `ollama pull` when Ollama runs as your user. Removing
+      them means downloading again (`ollama pull <model>`). To remove a single
+      model use `ollama rm <model>`. The system service keeps its models in
+      /usr/share/ollama, which OpenDisk does not touch.
+    requires_no_process: [ollama]
+    examples: ["~/.ollama/models"]
+
+  - id: lmstudio-models
+    name: LM Studio models
+    category: ai-models
+    safety: review
+    paths:
+      - "~/.lmstudio/models/*/*"
+      - "~/.cache/lm-studio/models/*/*"
+    explanation: >-
+      Models downloaded in LM Studio, one folder per model. They can be
+      downloaded again from LM Studio's Discover tab. Quit LM Studio first.
+    requires_no_process: [lm-studio, "LM Studio"]
+    examples:
+      - "~/.lmstudio/models/lmstudio-community/Qwen3-8B-GGUF"
+      - "~/.cache/lm-studio/models/TheBloke/Llama-2-7B-GGUF"
+
+  - id: huggingface-hub
+    name: Hugging Face model cache
+    category: ai-models
+    safety: review
+    paths:
+      - "~/.cache/huggingface/hub/*"
+      - "~/.cache/huggingface/xet"
+    exclude: ["~/.cache/huggingface/hub/.locks"]
+    explanation: >-
+      Models and tokenizers downloaded by transformers, diffusers and the
+      huggingface_hub library (`models--org--name`). They are downloaded again the
+      next time a script loads them, which can take a while for large models.
+    examples:
+      - "~/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B"
+      - "~/.cache/huggingface/xet"
+    non_examples: ["~/.cache/huggingface/hub/.locks"]
+
+  - id: huggingface-datasets
+    name: Hugging Face datasets cache
+    category: ai-models
+    safety: review
+    paths: ["~/.cache/huggingface/datasets/*"]
+    explanation: >-
+      Datasets downloaded and preprocessed by the `datasets` library. They are
+      downloaded and processed again when a script loads them.
+    examples: ["~/.cache/huggingface/datasets/squad"]
+
+  - id: torch-hub
+    name: PyTorch hub cache
+    category: ai-models
+    safety: review
+    paths: ["~/.cache/torch/*"]
+    explanation: >-
+      Pretrained weights downloaded by torch.hub and torchvision. PyTorch
+      downloads them again when a model asks for them.
+    examples: ["~/.cache/torch/hub"]
+
+  - id: whisper-models
+    name: Whisper models
+    category: ai-models
+    safety: review
+    paths: ["~/.cache/whisper/*"]
+    explanation: >-
+      Speech recognition models downloaded by openai-whisper. They are
+      downloaded again on first use.
+    examples: ["~/.cache/whisper/large-v3.pt"]
+
+  # --------------------------------------------------------------- JavaScript
+  - id: npm-cache
+    name: npm cache
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/.npm/_cacache"
+      - "~/.npm/_npx"
+      - "~/.npm/_logs"
+    explanation: >-
+      Every package tarball npm has downloaded, plus npx installs and logs.
+      Projects keep working; npm downloads packages again when needed (same as
+      `npm cache clean --force`).
+    examples: ["~/.npm/_cacache", "~/.npm/_npx"]
+
+  - id: yarn-cache
+    name: Yarn cache
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/.cache/yarn"
+      - "~/.yarn/berry/cache"
+    explanation: >-
+      Package archives cached by Yarn classic and Yarn Berry. Yarn downloads them
+      again on the next install.
+    examples: ["~/.cache/yarn", "~/.yarn/berry/cache"]
+
+  - id: pnpm-store
+    name: pnpm store
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/.local/share/pnpm/store"
+      - "~/.pnpm-store"
+    prefer_command:
+      argv: [pnpm, store, prune]
+      description: Removes only packages no project references any more.
+    explanation: >-
+      pnpm's content-addressed store. node_modules folders hardlink into it, so
+      deleting it frees less than shown until projects reinstall. `pnpm store
+      prune` removes only unreferenced packages.
+    examples: ["~/.local/share/pnpm/store", "~/.pnpm-store"]
+
+  - id: bun-cache
+    name: Bun cache
+    category: javascript
+    safety: regenerable
+    paths: ["~/.bun/install/cache"]
+    explanation: >-
+      Packages cached by `bun install`. Bun downloads them again when needed.
+    examples: ["~/.bun/install/cache"]
+
+  - id: node-gyp-cache
+    name: node-gyp headers
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/.cache/node-gyp"
+      - "~/.node-gyp"
+    explanation: >-
+      Node.js headers downloaded to compile native addons. node-gyp downloads them
+      again for the next native build.
+    examples: ["~/.cache/node-gyp"]
+
+  - id: nvm-cache
+    name: nvm download cache
+    category: javascript
+    safety: regenerable
+    paths: ["~/.nvm/.cache"]
+    explanation: >-
+      Node.js tarballs nvm downloaded while installing versions. Installed Node
+      versions are not affected.
+    examples: ["~/.nvm/.cache"]
+
+  - id: js-tooling-caches
+    name: JavaScript tooling caches
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/.cache/deno"
+      - "~/.cache/typescript"
+      - "~/.cache/electron"
+      - "~/.cache/electron-builder"
+    explanation: >-
+      Caches of Deno, the TypeScript language service, Electron and
+      electron-builder downloads. Each tool downloads or rebuilds them on demand.
+    examples: ["~/.cache/deno", "~/.cache/electron"]
+
+  - id: browser-test-runtimes
+    name: Browser testing downloads
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/.cache/ms-playwright"
+      - "~/.cache/Cypress"
+      - "~/.cache/puppeteer"
+    explanation: >-
+      Browser builds downloaded by Playwright, Cypress and Puppeteer. Run
+      `npx playwright install` (or reinstall Cypress/Puppeteer) to get them back.
+    examples: ["~/.cache/ms-playwright", "~/.cache/puppeteer"]
+
+  # ---------------------------------------------------------- Java & Android
+  - id: gradle-caches
+    name: Gradle caches
+    category: jvm
+    safety: regenerable
+    paths:
+      - "~/.gradle/caches"
+      - "~/.gradle/daemon"
+    explanation: >-
+      Downloaded dependencies, build cache and daemon logs. Gradle downloads what
+      it needs on the next build. Run `./gradlew --stop` first.
+    examples: ["~/.gradle/caches", "~/.gradle/daemon"]
+
+  - id: gradle-wrapper
+    name: Gradle wrapper distributions
+    category: jvm
+    safety: regenerable
+    paths: ["~/.gradle/wrapper/dists/*"]
+    explanation: >-
+      Full Gradle distributions downloaded by `./gradlew`, one per version. The
+      wrapper downloads the version a project needs again.
+    examples: ["~/.gradle/wrapper/dists/gradle-8.7-bin"]
+
+  - id: maven-repository
+    name: Maven local repository
+    category: jvm
+    safety: regenerable
+    paths: ["~/.m2/repository"]
+    explanation: >-
+      Artifacts downloaded by Maven (and some Gradle builds). Maven downloads them
+      again. Artifacts you installed locally with `mvn install` would need a rebuild.
+    examples: ["~/.m2/repository"]
+
+  - id: android-build-cache
+    name: Android build cache
+    category: jvm
+    safety: regenerable
+    paths: ["~/.android/cache", "~/.android/build-cache"]
+    explanation: >-
+      Android Gradle plugin and SDK manager caches. They are rebuilt on demand.
+    examples: ["~/.android/cache"]
+
+  - id: android-emulators
+    name: Android emulators
+    category: jvm
+    safety: review
+    paths: ["~/.android/avd/*.avd"]
+    explanation: >-
+      Android Virtual Devices, including their installed apps and data. Recreate
+      them in Android Studio's Device Manager. Close the emulator first.
+    requires_no_process: [emulator, qemu-system-x86_64, qemu-system-aarch64]
+    examples: ["~/.android/avd/Pixel_8_API_35.avd"]
+
+  # ------------------------------------------------------------------ Python
+  - id: pip-cache
+    name: pip cache
+    category: python
+    safety: regenerable
+    paths: ["~/.cache/pip"]
+    explanation: >-
+      Wheels and downloads cached by pip. Same as `pip cache purge`; packages are
+      downloaded again on the next install.
+    examples: ["~/.cache/pip"]
+
+  - id: uv-cache
+    name: uv cache
+    category: python
+    safety: regenerable
+    paths: ["~/.cache/uv"]
+    explanation: >-
+      Packages and Python builds cached by uv. Same as `uv cache clean`. Virtual
+      environments created by uv keep working.
+    examples: ["~/.cache/uv"]
+
+  - id: poetry-cache
+    name: Poetry cache
+    category: python
+    safety: regenerable
+    paths: ["~/.cache/pypoetry"]
+    explanation: >-
+      Package archives and metadata cached by Poetry. Poetry downloads them again.
+    examples: ["~/.cache/pypoetry"]
+
+  - id: conda-packages
+    name: Conda package cache
+    category: python
+    safety: regenerable
+    paths: ["~/{miniconda3,anaconda3,miniforge3,mambaforge,.conda}/pkgs"]
+    prefer_command:
+      argv: [conda, clean, --all, --yes]
+      description: Removes unused packages and tarballs from the conda cache.
+    explanation: >-
+      Downloaded package tarballs and extracted packages. Packages used by an
+      environment are hardlinked, so `conda clean --all` is the safe way to trim it.
+    examples: ["~/miniconda3/pkgs", "~/.conda/pkgs"]
+
+  - id: pre-commit-cache
+    name: pre-commit environments
+    category: python
+    safety: regenerable
+    paths: ["~/.cache/pre-commit"]
+    explanation: >-
+      Hook environments built by pre-commit. They are rebuilt the next time hooks run.
+    examples: ["~/.cache/pre-commit"]
+
+  # --------------------------------------------------------------- Rust & Go
+  - id: cargo-registry
+    name: Cargo registry cache
+    category: rust-go
+    safety: regenerable
+    paths:
+      - "~/.cargo/registry/{cache,src}"
+      - "~/.cargo/git/{checkouts,db}"
+    explanation: >-
+      Downloaded crates and git dependencies. Cargo downloads them again on the
+      next build. Installed binaries in ~/.cargo/bin are not touched.
+    requires_no_process: [cargo, rust-analyzer]
+    examples: ["~/.cargo/registry/cache", "~/.cargo/git/checkouts"]
+
+  - id: rustup-toolchains
+    name: Rust toolchains
+    category: rust-go
+    safety: review
+    paths: ["~/.rustup/toolchains/*"]
+    explanation: >-
+      Installed Rust toolchains. Keep the ones you build with; remove old
+      nightlies with `rustup toolchain uninstall <name>`.
+    examples: ["~/.rustup/toolchains/nightly-2025-01-01-x86_64-unknown-linux-gnu"]
+
+  - id: go-build-cache
+    name: Go build cache
+    category: rust-go
+    safety: regenerable
+    paths: ["~/.cache/go-build"]
+    explanation: >-
+      Compiled packages cached by `go build`. Same as `go clean -cache`.
+    examples: ["~/.cache/go-build"]
+
+  - id: go-module-cache
+    name: Go module cache
+    category: rust-go
+    safety: regenerable
+    paths: ["~/go/pkg/mod"]
+    prefer_command:
+      argv: [go, clean, -modcache]
+      description: Removes the Go module download cache.
+    explanation: >-
+      Downloaded Go modules. They are read-only on disk, so OpenDisk uses
+      `go clean -modcache`. Modules are downloaded again on the next build.
+    examples: ["~/go/pkg/mod"]
+
+  # -------------------------------------------------------------- Containers
+  - id: docker-desktop-disk
+    name: Docker Desktop disk image
+    category: containers
+    safety: personal
+    kind: file
+    paths: ["~/.docker/desktop/vms/0/data/Docker.raw"]
+    prefer_command:
+      argv: [docker, system, prune, --force]
+      description: Removes stopped containers, unused networks, dangling images and build cache.
+    explanation: >-
+      The virtual disk of Docker Desktop for Linux, holding every image,
+      container and volume. Volumes may contain databases. OpenDisk runs
+      `docker system prune` instead of deleting it. Docker Engine installed from
+      apt keeps its data in /var/lib/docker, outside your home folder.
+    examples: ["~/.docker/desktop/vms/0/data/Docker.raw"]
+
+  - id: podman-storage
+    name: Podman images and containers
+    category: containers
+    safety: personal
+    paths: ["~/.local/share/containers/storage"]
+    prefer_command:
+      argv: [podman, system, prune, --force]
+      description: Removes stopped containers, unused pods, dangling images and build cache.
+    explanation: >-
+      Images, containers and volumes of rootless Podman. Volumes may contain
+      databases, so OpenDisk runs `podman system prune` instead of deleting the folder.
+    examples: ["~/.local/share/containers/storage"]
+
+  # ---------------------------------------------------------------- Homebrew
+  - id: homebrew-cache
+    name: Homebrew downloads
+    category: homebrew
+    safety: regenerable
+    paths: ["~/.cache/Homebrew"]
+    prefer_command:
+      argv: [brew, cleanup, --prune=all]
+      description: Removes old versions and all cached downloads.
+    explanation: >-
+      Bottles and source archives downloaded by Homebrew on Linux. Installed
+      packages are not affected.
+    examples: ["~/.cache/Homebrew"]
+
+  # -------------------------------------------------------------- App caches
+  - id: jetbrains-caches
+    name: JetBrains IDE caches
+    category: app-caches
+    safety: regenerable
+    paths: ["~/.cache/JetBrains/*"]
+    explanation: >-
+      Indexes and caches of IntelliJ, PyCharm, Android Studio and other JetBrains
+      IDEs, one folder per version (old versions pile up). Rebuilt when the IDE
+      reopens a project.
+    examples: ["~/.cache/JetBrains/IntelliJIdea2024.1"]
+
+  - id: vscode-caches
+    name: VS Code caches
+    category: app-caches
+    safety: regenerable
+    paths:
+      - "~/.config/Code/{Cache,CachedData,CachedExtensionVSIXs,Code Cache,GPUCache,logs}"
+      - "~/.config/Code/Service Worker/CacheStorage"
+    explanation: >-
+      Electron caches, old-version update data and logs of Visual Studio Code.
+      Settings and extensions are not touched. Quit VS Code first.
+    requires_no_process: [code]
+    examples: ["~/.config/Code/CachedData", "~/.config/Code/Code Cache"]
+    non_examples: ["~/.config/Code/User"]
+
+  - id: cursor-caches
+    name: Cursor caches
+    category: app-caches
+    safety: regenerable
+    paths:
+      - "~/.config/Cursor/{Cache,CachedData,CachedExtensionVSIXs,Code Cache,GPUCache,logs}"
+      - "~/.config/Cursor/Service Worker/CacheStorage"
+    explanation: >-
+      Electron caches and logs of the Cursor editor. Settings and extensions are
+      not touched. Quit Cursor first.
+    requires_no_process: [cursor]
+    examples: ["~/.config/Cursor/CachedData"]
+
+  - id: slack-caches
+    name: Slack caches
+    category: app-caches
+    safety: regenerable
+    paths:
+      - "~/.config/Slack/{Cache,Code Cache,GPUCache}"
+      - "~/.config/Slack/Service Worker/CacheStorage"
+    explanation: >-
+      Cached images, files and web code from Slack. Messages live on Slack's
+      servers and are downloaded again. Quit Slack first.
+    requires_no_process: [slack]
+    examples: ["~/.config/Slack/Cache", "~/.config/Slack/Service Worker/CacheStorage"]
+
+  - id: discord-caches
+    name: Discord caches
+    category: app-caches
+    safety: regenerable
+    paths: ["~/.config/discord/{Cache,Code Cache,GPUCache}"]
+    explanation: >-
+      Cached images, videos and web code from Discord. Downloaded again as you
+      browse. Quit Discord first.
+    requires_no_process: [Discord, discord]
+    examples: ["~/.config/discord/Cache"]
+
+  - id: teams-caches
+    name: Teams for Linux caches
+    category: app-caches
+    safety: regenerable
+    paths:
+      - "~/.config/teams-for-linux/{Cache,Code Cache,GPUCache}"
+      - "~/.config/teams-for-linux/Service Worker/CacheStorage"
+    explanation: >-
+      Web caches of the teams-for-linux client. Chats and files are on
+      Microsoft's servers. Quit it first.
+    requires_no_process: [teams-for-linux]
+    examples: ["~/.config/teams-for-linux/Cache"]
+
+  - id: spotify-cache
+    name: Spotify offline cache
+    category: app-caches
+    safety: regenerable
+    paths: ["~/.cache/spotify/{Data,Storage}"]
+    explanation: >-
+      Songs Spotify cached while streaming. Downloaded playlists may need to be
+      downloaded again. Quit Spotify first.
+    requires_no_process: [spotify]
+    examples: ["~/.cache/spotify/Data"]
+
+  - id: thumbnails
+    name: Thumbnail cache
+    category: app-caches
+    safety: regenerable
+    paths: ["~/.cache/thumbnails/*"]
+    explanation: >-
+      Previews of images and videos made by the file manager. They are created
+      again when you open a folder.
+    examples: ["~/.cache/thumbnails/large", "~/.cache/thumbnails/normal"]
+
+  - id: dot-cache
+    name: Application caches
+    category: app-caches
+    safety: review
+    priority: 10
+    paths: ["~/.cache/*"]
+    explanation: >-
+      Caches written by apps and command-line tools under ~/.cache (XDG cache
+      folder). Most rebuild them, but some keep state here, so they go to the
+      Trash. Close the app first.
+    examples: ["~/.cache/some-cli-tool"]
+
+  # ---------------------------------------------------------------- Browsers
+  - id: chrome-caches
+    name: Google Chrome caches
+    category: browsers
+    safety: regenerable
+    paths:
+      - "~/.cache/google-chrome/*/{Cache,Code Cache}"
+      - "~/.config/google-chrome/*/{Cache,Code Cache,GPUCache}"
+      - "~/.config/google-chrome/*/Service Worker/CacheStorage"
+    explanation: >-
+      Per-profile web, code, GPU and service worker caches. Bookmarks, history,
+      passwords and cookies are not touched. Quit Chrome first.
+    requires_no_process: [chrome]
+    examples:
+      - "~/.cache/google-chrome/Default/Cache"
+      - "~/.config/google-chrome/Profile 1/Code Cache"
+      - "~/.config/google-chrome/Default/Service Worker/CacheStorage"
+
+  - id: chromium-caches
+    name: Chromium caches
+    category: browsers
+    safety: regenerable
+    paths:
+      - "~/.cache/chromium/*/{Cache,Code Cache}"
+      - "~/.config/chromium/*/{Cache,Code Cache,GPUCache}"
+      - "~/.config/chromium/*/Service Worker/CacheStorage"
+      - "~/snap/chromium/common/.cache/chromium/*/{Cache,Code Cache}"
+    explanation: >-
+      Per-profile caches of Chromium (including the snap). Quit Chromium first.
+    requires_no_process: [chromium, chrome]
+    examples: ["~/.cache/chromium/Default/Cache", "~/snap/chromium/common/.cache/chromium/Default/Cache"]
+
+  - id: edge-caches
+    name: Microsoft Edge caches
+    category: browsers
+    safety: regenerable
+    paths:
+      - "~/.cache/microsoft-edge/*/{Cache,Code Cache}"
+      - "~/.config/microsoft-edge/*/{Cache,Code Cache,GPUCache}"
+      - "~/.config/microsoft-edge/*/Service Worker/CacheStorage"
+    explanation: >-
+      Per-profile caches of Edge. Browsing data you care about is not touched.
+      Quit Edge first.
+    requires_no_process: [msedge]
+    examples: ["~/.cache/microsoft-edge/Default/Cache"]
+
+  - id: brave-caches
+    name: Brave caches
+    category: browsers
+    safety: regenerable
+    paths:
+      - "~/.cache/BraveSoftware/Brave-Browser/*/{Cache,Code Cache}"
+      - "~/.config/BraveSoftware/Brave-Browser/*/{Cache,Code Cache,GPUCache}"
+      - "~/.config/BraveSoftware/Brave-Browser/*/Service Worker/CacheStorage"
+    explanation: >-
+      Per-profile caches of Brave. Quit Brave first.
+    requires_no_process: [brave]
+    examples: ["~/.cache/BraveSoftware/Brave-Browser/Default/Cache"]
+
+  - id: firefox-cache
+    name: Firefox cache
+    category: browsers
+    safety: regenerable
+    paths:
+      - "~/.cache/mozilla/firefox/*/cache2"
+      - "~/snap/firefox/common/.cache/mozilla/firefox/*/cache2"
+    explanation: >-
+      Firefox's web cache for each profile (including the snap Firefox that
+      Ubuntu installs). Your profile in ~/.mozilla is never touched. Quit
+      Firefox first.
+    requires_no_process: [firefox, firefox-bin]
+    examples:
+      - "~/.cache/mozilla/firefox/abcd1234.default-release/cache2"
+      - "~/snap/firefox/common/.cache/mozilla/firefox/abcd1234.default/cache2"
+
+  # --------------------------------------------------------------- Downloads
+  - id: old-installers
+    name: Old installers in Downloads
+    category: downloads
+    safety: review
+    kind: file
+    min_age_days: 30
+    paths: ["~/Downloads/*.{deb,rpm,iso,AppImage,run,snap,flatpak}"]
+    explanation: >-
+      Packages, disk images and AppImages downloaded more than 30 days ago. Once
+      the app is installed they are usually not needed. An AppImage may be the
+      app itself, so check before removing it.
+    examples: ["~/Downloads/code_1.95_amd64.deb", "~/Downloads/ubuntu-24.04-desktop-amd64.iso"]
+    non_examples: ["~/Downloads/report.pdf"]
+
+  # ------------------------------------------------------------------- Trash
+  - id: trash
+    name: Trash
+    category: trash
+    safety: personal
+    permanent: true
+    paths:
+      - "~/.local/share/Trash/files/*"
+      - "~/.local/share/Trash/info/*"
+      - "~/.local/share/Trash/expunged/*"
+    explanation: >-
+      Items you already moved to the Trash, with their restore records.
+      Emptying it deletes them for good; this is the only action in OpenDisk
+      that cannot be undone.
+    examples: ["~/.local/share/Trash/files/old-project", "~/.local/share/Trash/files/.hidden-file"]

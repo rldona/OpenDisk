@@ -93,7 +93,7 @@ fn sel(rule: &str, path: &Path) -> Selection {
 }
 
 fn rules() -> &'static RuleSet {
-    RuleSet::builtin()
+    RuleSet::macos()
 }
 
 #[test]
