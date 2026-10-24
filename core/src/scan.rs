@@ -309,8 +309,11 @@ mod tests {
         );
         assert_eq!(res.tree.files, 4, "3 regular entries + the symlink itself");
         assert!(!res.cancelled);
+        // The shared inode counts under whichever folder the walk reached first,
+        // which depends on the file system's directory order.
         let a = res.tree.find(Path::new("a")).unwrap();
-        assert!(a.size >= 1 << 20);
+        let b = res.tree.find(Path::new("b")).unwrap();
+        assert!(a.size.max(b.size) >= 1 << 20);
         assert!(
             res.tree.children.windows(2).all(|w| w[0].size >= w[1].size),
             "sorted by size"

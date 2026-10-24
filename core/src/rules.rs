@@ -360,7 +360,7 @@ mod tests {
 
     #[test]
     fn matching_escapes_home() {
-        let rule = RuleSet::builtin().get("user-caches").unwrap();
+        let rule = RuleSet::macos().get("user-caches").unwrap();
         let home = Path::new("/Users/we[ir]d");
         let c = CompiledRule::new(rule, home);
         assert!(c.matches(Path::new("/Users/we[ir]d/Library/Caches/com.foo.bar")));
