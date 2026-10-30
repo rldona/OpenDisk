@@ -8,7 +8,8 @@ Build it from source with `cargo build --release -p opendisk-cli`; the binary is
 
 ### `opendisk scan [PATH]`
 
-Shows where the space goes. `PATH` defaults to your home folder; use `/System/Volumes/Data` for the whole data volume.
+Shows where the space goes. `PATH` defaults to your home folder; use the data volume root for the whole disk
+(`/System/Volumes/Data` on macOS, `/` on Linux, `C:\` on Windows).
 
 | Option | |
 | --- | --- |
@@ -40,7 +41,7 @@ With no `--rule` or `--safety`, it selects every *regenerable* finding.
 | `--execute` | Really clean. Asks for confirmation |
 | `--yes`, `-y` | Don't ask for confirmation (needed without a terminal) |
 | `--delete-regenerable` | Delete regenerable caches instead of moving them to the Trash |
-| `--allow-permanent` | Allow emptying the Trash |
+| `--allow-permanent` | Allow emptying the Trash (macOS and Linux; on Windows empty the Recycle Bin from Explorer) |
 | `--json` | Print the report as JSON |
 
 ```bash
@@ -52,7 +53,7 @@ After a real clean it prints the space really freed and the run id for undo.
 
 ### `opendisk undo RUN_ID`
 
-Puts back everything that run moved to the Trash.
+Puts back everything that run moved to the Trash or Recycle Bin.
 
 ### `opendisk rules`
 
@@ -60,7 +61,7 @@ Lists the built-in rules: id, safety, category and name. Details are in [Built-i
 
 ### `opendisk snapshots`
 
-Lists APFS local snapshots with an explanation.
+Lists APFS local snapshots with an explanation (macOS only; hidden elsewhere).
 
 ### `opendisk fda [--open]`
 
@@ -69,4 +70,5 @@ Shows whether the terminal has Full Disk Access; `--open` opens the settings pan
 ## Global options
 
 `--home DIR` makes every command treat `DIR` as the home folder: rules, denylist, journal and scan history all follow
-it. This is how the test suite runs against fake folder trees, and a safe way to try OpenDisk on a copy.
+it (the default comes from `$HOME` or `%USERPROFILE%`). This is how the test suite runs against fake folder trees, and a
+safe way to try OpenDisk on a copy.

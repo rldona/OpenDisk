@@ -3,6 +3,8 @@
 //! filesystem or shell plugins.
 
 use std::collections::HashMap;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -15,7 +17,7 @@ use opendisk_core::journal::Journal;
 use opendisk_core::rules::RuleSet;
 use opendisk_core::scan::{self, DirNode, ScanOptions, ScanResult};
 use opendisk_core::snapshots::{self, SnapshotReport};
-use opendisk_core::system::{self, RealSystem};
+use opendisk_core::system::{self, RealSystem, TRASH_NAME};
 use opendisk_core::{index, paths};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
@@ -38,8 +40,14 @@ fn err(e: impl std::fmt::Display) -> String {
 struct AppInfo {
     home: String,
     version: &'static str,
-    data_volume: &'static str,
+    data_volume: String,
     os: &'static str,
+    /// `/` or `\\`, so the UI can join and split paths.
+    path_sep: &'static str,
+    /// "Trash" or "Recycle Bin".
+    trash_name: &'static str,
+    /// "Finder", "Files" or "File Explorer".
+    file_manager: &'static str,
 }
 
 #[tauri::command]
@@ -47,12 +55,17 @@ fn app_info(state: State<'_, AppState>) -> AppInfo {
     AppInfo {
         home: state.home.to_string_lossy().into_owned(),
         version: env!("CARGO_PKG_VERSION"),
-        data_volume: if cfg!(target_os = "macos") {
-            "/System/Volumes/Data"
-        } else {
-            "/"
-        },
+        data_volume: paths::data_volume(&state.home).to_string_lossy().into_owned(),
         os: std::env::consts::OS,
+        path_sep: std::path::MAIN_SEPARATOR_STR,
+        trash_name: TRASH_NAME,
+        file_manager: if cfg!(target_os = "macos") {
+            "Finder"
+        } else if cfg!(windows) {
+            "File Explorer"
+        } else {
+            "Files"
+        },
     }
 }
 
@@ -108,7 +121,7 @@ struct ScanDone {
 fn start_scan(app: AppHandle, state: State<'_, AppState>, target: String) -> CmdResult<()> {
     let root = match target.as_str() {
         "home" => state.home.clone(),
-        "volume" => PathBuf::from("/System/Volumes/Data"),
+        "volume" => paths::data_volume(&state.home),
         _ => return Err("unknown scan target".into()),
     };
     let mut cancel_slot = state.cancel.lock().unwrap();
@@ -303,7 +316,9 @@ async fn execute_plan(state: State<'_, AppState>, plan_id: String, dry_run: bool
         let cleaned: Vec<&Path> = report
             .outcomes
             .iter()
-            .filter(|o| o.trashed_to.is_some() || o.status == clean::Status::Deleted)
+            .filter(|o| {
+                o.trashed_to.is_some() || o.status == clean::Status::Deleted || o.status == clean::Status::Erased
+            })
             .map(|o| o.path.as_path())
             .collect();
         let mut found = state.findings.lock().unwrap();
@@ -340,20 +355,35 @@ async fn list_snapshots() -> CmdResult<SnapshotReport> {
     tauri::async_runtime::spawn_blocking(snapshots::list).await.map_err(err)
 }
 
-/// Shows a path in Finder. Only paths inside the home folder.
+/// Shows a path in Finder, Files or File Explorer. Only paths inside the home
+/// folder.
 #[tauri::command]
 fn reveal_path(state: State<'_, AppState>, path: String) -> CmdResult<()> {
     let p = PathBuf::from(&path);
     if !paths::is_normalized_absolute(&p) || !p.starts_with(&state.home) {
         return Err("can only reveal paths inside the home folder".into());
     }
-    if cfg!(target_os = "macos") {
+    #[cfg(target_os = "macos")]
+    {
         std::process::Command::new("/usr/bin/open")
             .arg("-R")
             .arg(&p)
             .status()
             .map_err(err)?;
-    } else {
+    }
+    #[cfg(windows)]
+    {
+        if path.contains('"') {
+            return Err("the path contains a quote".into());
+        }
+        // explorer returns 1 even when it works, so the status is ignored.
+        std::process::Command::new("explorer.exe")
+            .raw_arg(format!("/select,\"{}\"", p.display()))
+            .spawn()
+            .map_err(err)?;
+    }
+    #[cfg(all(not(target_os = "macos"), not(windows)))]
+    {
         // xdg-open can't select an item, so open the folder that holds it.
         let folder = if p.is_dir() {
             p.as_path()
@@ -370,9 +400,7 @@ fn reveal_path(state: State<'_, AppState>, path: String) -> CmdResult<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let home = std::env::var_os("HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("/"));
+    let home = paths::home_dir().expect("cannot find the home folder");
     tauri::Builder::default()
         .manage(AppState {
             home,

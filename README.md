@@ -20,8 +20,11 @@ artifact of the [CI workflow](https://github.com/rldona/OpenDisk/actions/workflo
 with an Apple Developer ID, so the first launch shows a system warning; the
 [getting started guide](https://rldona.github.io/OpenDisk/guide/getting-started) explains how to open it.
 
-A **Linux .deb** for Ubuntu 22.04 and later (amd64) comes with the same releases and is the `OpenDisk-linux-amd64-deb`
-artifact of each CI run. Install it with `sudo apt install ./OpenDisk_*_amd64.deb`. Windows is planned.
+**Linux** ships a `.deb` for Ubuntu 22.04 and later (amd64) and an `.AppImage` for any distribution: install the
+package with `sudo apt install ./OpenDisk_*_amd64.deb`, or make the AppImage executable and run it.
+**Windows 10 and 11** ship an NSIS installer (`.exe`, per-user, no administrator rights) and, when WiX is available,
+an `.msi`. Releases also carry the `opendisk` command line tool for Linux and Windows. Windows builds are not signed
+yet, so SmartScreen warns on first launch.
 
 ## Manual
 
@@ -32,7 +35,7 @@ APFS snapshots, the safety model, the [list of rules](https://rldona.github.io/O
 ## Features
 
 - **Scan** your home folder or the whole data volume in parallel, with a **disk map** that includes hidden folders
-- **61 rules** that recognise reclaimable space and explain it: Xcode DerivedData, device support files, archives and
+- **Platform-specific rule sets** (50 or more rules each, 61 on macOS) that recognise reclaimable space and explain it: Xcode DerivedData, device support files, archives and
   simulators; npm, Yarn, pnpm, Bun, Playwright; Gradle, Maven, Android emulators; Cargo, rustup, Go; pip, uv, Poetry,
   conda; Hugging Face, PyTorch, Whisper, Ollama, GPT4All and LM Studio models; Docker Desktop; Homebrew; Slack,
   Discord, Teams, VS Code, Cursor, Spotify, Chrome, Edge, Brave, Arc and Firefox caches; logs; old installers in
@@ -66,7 +69,9 @@ Details in the [safety model](https://rldona.github.io/OpenDisk/guide/safety).
 
 ## Quick start (from source)
 
-Requires macOS with the Xcode command line tools, [Rust](https://rustup.rs) stable and Node.js 22+.
+Requires [Rust](https://rustup.rs) stable, Node.js 22+ and the platform toolchain: Xcode command line tools on macOS,
+`libwebkit2gtk-4.1-dev` and the usual Tauri dependencies on Linux, and the MSVC build tools on Windows. The minimum
+supported Rust is 1.82.
 
 ```bash
 cargo test                                  # engine and CLI tests (fixture folders only)
@@ -83,7 +88,7 @@ npm run demo                                # the UI in a browser with made-up d
 | Layer | Choice |
 | --- | --- |
 | Engine | Rust library: parallel scanner, YAML rule engine, cleaner with journal (`core/`) |
-| Rules | Declarative YAML embedded in the binary, each tested against its own examples (`core/rules/macos.yaml`) |
+| Rules | Declarative YAML embedded in the binary, each tested against its own examples (`core/rules/{macos,linux,windows}.yaml`) |
 | Desktop app | [Tauri 2](https://tauri.app) with React + TypeScript (`app/`), commands allowlisted |
 | Command line | `opendisk` on the same engine (`cli/`) |
 | Scan history | SQLite, local only |
@@ -105,9 +110,11 @@ docs/                  user manual
 
 ## Limitations (MVP)
 
-- macOS and Linux (Ubuntu .deb) for now; Windows is planned. On Linux there are no APFS snapshots, the owning app is
-  detected by process name only, and only the home folder's Trash is used
-- Not signed with an Apple Developer ID or notarized yet
+- macOS, Linux (Ubuntu `.deb` and `.AppImage`) and Windows 10/11 (NSIS/MSI). On Linux and Windows there are no APFS
+  snapshots or Full Disk Access; the owning app is detected by process name only, and Windows uses the Recycle Bin
+- On Windows, emptying the Recycle Bin is left to File Explorer, `%LOCALAPPDATA%`/`%APPDATA%` are assumed to live under
+  the user profile, and the scanner opens each file once to read its allocated size (slower than on macOS)
+- Not signed with an Apple Developer ID or an Authenticode certificate yet, and not notarized
 - Cleans inside your home folder only; system-level space is left to official tools such as `tmutil`
 - The scan history is recorded but "what grew since the last scan" is not shown yet
 - The scanner uses a portable directory walk; the faster macOS `getattrlistbulk` path is a TODO

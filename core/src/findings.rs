@@ -139,7 +139,7 @@ pub fn find(rules: &RuleSet, home: &Path, sizer: &dyn Sizer) -> Vec<Finding> {
                     let (bytes, files) = if md.is_dir() {
                         sizer.dir_size(&path)
                     } else {
-                        (size::allocated(&md), 1)
+                        (size::info(&path, &md).allocated, 1)
                     };
                     (bytes > 0).then(|| Item {
                         requires_closed: compiled.bundle_ids_for(&path, home),

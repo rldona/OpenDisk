@@ -131,8 +131,8 @@ impl ScanResult {
 }
 
 struct Walker<'a> {
-    root_dev: u64,
-    seen_inodes: DashSet<(u64, u64)>,
+    root_volume: Option<u64>,
+    seen_inodes: DashSet<size::FileId>,
     cancel: &'a AtomicBool,
     progress: &'a Progress,
     denied: Mutex<Vec<PathBuf>>,
@@ -150,11 +150,16 @@ impl Walker<'_> {
     }
 
     /// Size a file counts for: zero if this inode was already counted.
-    fn file_size(&self, md: &fs::Metadata) -> u64 {
-        if size::nlink(md) > 1 && !self.seen_inodes.insert(size::dev_ino(md)) {
-            return 0;
+    fn file_size(&self, path: &Path, md: &fs::Metadata) -> u64 {
+        let info = size::info(path, md);
+        if info.nlink > 1 {
+            if let Some(id) = info.id {
+                if !self.seen_inodes.insert(id) {
+                    return 0;
+                }
+            }
         }
-        size::allocated(md)
+        info.allocated
     }
 
     fn walk(&self, path: &Path, name: String, own_size: u64) -> DirNode {
@@ -193,14 +198,17 @@ impl Walker<'_> {
                 }
             };
             if md.is_dir() {
-                if size::dev_ino(&md).0 != self.root_dev {
-                    continue; // mount point of another volume: don't cross
+                let info = size::info(&entry.path(), &md);
+                if let (Some(root), Some(id)) = (self.root_volume, info.id) {
+                    if id.volume != root {
+                        continue; // mount point of another volume: don't cross
+                    }
                 }
                 let child_name = entry.file_name().to_string_lossy().into_owned();
-                subdirs.push((entry.path(), child_name, size::allocated(&md)));
+                subdirs.push((entry.path(), child_name, info.allocated));
             } else {
                 // Regular files, symlinks (the link itself), sockets, ...
-                node.own_files_size += self.file_size(&md);
+                node.own_files_size += self.file_size(&entry.path(), &md);
                 files += 1;
             }
         }
@@ -248,14 +256,15 @@ pub fn scan(opts: &ScanOptions) -> io::Result<ScanResult> {
         ));
     }
     let walker = Walker {
-        root_dev: size::dev_ino(&root_md).0,
+        root_volume: size::info(&opts.root, &root_md).id.map(|id| id.volume),
         seen_inodes: DashSet::new(),
         cancel: &opts.cancel,
         progress: &opts.progress,
         denied: Mutex::default(),
     };
     let name = opts.root.to_string_lossy().into_owned();
-    let tree = pool().install(|| walker.walk(&opts.root, name, size::allocated(&root_md)));
+    let root_size = size::info(&opts.root, &root_md).allocated;
+    let tree = pool().install(|| walker.walk(&opts.root, name, root_size));
     Ok(ScanResult {
         root: opts.root.clone(),
         tree,
@@ -271,7 +280,7 @@ pub fn scan(opts: &ScanOptions) -> io::Result<ScanResult> {
 pub fn measure(path: &Path) -> io::Result<(u64, u64)> {
     let md = fs::symlink_metadata(path)?;
     if !md.is_dir() {
-        return Ok((size::allocated(&md), 1));
+        return Ok((size::info(path, &md).allocated, 1));
     }
     let res = scan(&ScanOptions::new(path))?;
     Ok((res.tree.size, res.tree.files))
@@ -288,6 +297,23 @@ mod tests {
         f.write_all(&vec![7u8; len]).unwrap();
     }
 
+    /// Directory link: a symlink on Unix, a junction on Windows. Junctions do
+    /// not need developer mode or administrator rights.
+    fn link_dir(target: &Path, link: &Path) {
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(target, link).unwrap();
+        #[cfg(windows)]
+        {
+            let status = std::process::Command::new("cmd")
+                .args(["/C", "mklink", "/J"])
+                .arg(link)
+                .arg(target)
+                .status()
+                .unwrap();
+            assert!(status.success(), "mklink /J {link:?} -> {target:?}");
+        }
+    }
+
     #[test]
     fn sizes_hardlinks_and_symlinks() {
         let tmp = tempfile::tempdir().unwrap();
@@ -295,10 +321,10 @@ mod tests {
         write(&root.join("a/big.bin"), 1 << 20);
         write(&root.join("b/small.txt"), 10);
         fs::hard_link(root.join("a/big.bin"), root.join("b/big-link.bin")).unwrap();
-        // A symlink to a big directory elsewhere must not be followed.
+        // A link to a big directory elsewhere must not be followed.
         let outside = tempfile::tempdir().unwrap();
         write(&outside.path().join("huge.bin"), 4 << 20);
-        std::os::unix::fs::symlink(outside.path(), root.join("link-to-outside")).unwrap();
+        link_dir(outside.path(), &root.join("link-to-outside"));
 
         let res = scan(&ScanOptions::new(root)).unwrap();
         let total = res.tree.size;
@@ -320,6 +346,7 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
     #[test]
     fn allocated_not_logical() {
         let tmp = tempfile::tempdir().unwrap();

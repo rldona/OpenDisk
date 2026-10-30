@@ -45,5 +45,6 @@ docs/        this manual (VitePress)
 - A faster macOS listing with `getattrlistbulk` (the walker uses portable `readdir` for now).
 - Deleting through directory file descriptors (`openat`/`unlinkat`) to close the last check-then-act window.
 - Showing what grew since the last scan, from the scan history.
-- Developer ID signing and notarization.
-- Windows and Linux.
+- Developer ID and Authenticode signing, and notarization.
+- Emptying the Windows Recycle Bin from inside the app.
+- A faster Windows scan that asks for size and file id per directory instead of per file.

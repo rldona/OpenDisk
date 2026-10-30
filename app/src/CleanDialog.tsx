@@ -2,10 +2,10 @@ import { useState } from "react";
 import { api, formatBytes, tildify, type Action, type Plan, type Report, type Status } from "./api";
 import { SafetyBadge } from "./Findings";
 
-function actionText(a: Action): string {
+function actionText(a: Action, trashName: string): string {
   switch (a.kind) {
     case "trash":
-      return "Move to Trash";
+      return `Move to ${trashName}`;
     case "delete":
       return "Delete now";
     case "command":
@@ -13,25 +13,38 @@ function actionText(a: Action): string {
   }
 }
 
-const STATUS_TEXT: Record<Status, string> = {
-  would_clean: "Would clean",
-  trashed: "Moved to Trash",
-  deleted: "Deleted",
-  command_ran: "Command ran",
-  covered_by_command: "Covered by command",
-  skipped: "Skipped",
-  failed: "Failed",
-};
+function statusText(status: Status, trashName: string): string {
+  switch (status) {
+    case "would_clean":
+      return "Would clean";
+    case "trashed":
+      return `Moved to ${trashName}`;
+    case "deleted":
+      return "Deleted";
+    case "erased":
+      return "Deleted permanently";
+    case "command_ran":
+      return "Command ran";
+    case "covered_by_command":
+      return "Covered by command";
+    case "skipped":
+      return "Skipped";
+    case "failed":
+      return "Failed";
+  }
+}
 
 interface Props {
   home: string;
+  pathSep: string;
+  trashName: string;
   plan: Plan;
   onClose: () => void;
   onCleaned: (report: Report) => void;
 }
 
 /** Preview of a plan, then dry run or the real thing, then the results. */
-export function CleanDialog({ home, plan, onClose, onCleaned }: Props) {
+export function CleanDialog({ home, pathSep, trashName, plan, onClose, onCleaned }: Props) {
   const [report, setReport] = useState<Report | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +83,7 @@ export function CleanDialog({ home, plan, onClose, onCleaned }: Props) {
             <h2>{report?.dry_run ? "Dry run result" : "Preview"}</h2>
             <div className="totals">
               <div>
-                <span className="muted">To Trash</span>
+                <span className="muted">To {trashName}</span>
                 <strong>{formatBytes(plan.trash_bytes)}</strong>
               </div>
               <div>
@@ -107,7 +120,7 @@ export function CleanDialog({ home, plan, onClose, onCleaned }: Props) {
                     <tr key={i.path} className={i.blockers.length ? "blocked" : ""}>
                       <td>
                         <div className="path" title={i.path}>
-                          {tildify(i.path, home)}
+                          {tildify(i.path, home, pathSep)}
                         </div>
                         <div className="small muted">
                           {i.rule_name} <SafetyBadge safety={i.safety} />
@@ -122,8 +135,8 @@ export function CleanDialog({ home, plan, onClose, onCleaned }: Props) {
                         )}
                       </td>
                       <td>
-                        {i.blockers.length ? "Skip" : actionText(i.action)}
-                        {outcome && <div className="small muted">{STATUS_TEXT[outcome.status]}</div>}
+                        {i.blockers.length ? "Skip" : actionText(i.action, trashName)}
+                        {outcome && <div className="small muted">{statusText(outcome.status, trashName)}</div>}
                       </td>
                       <td className="num">{formatBytes(i.bytes)}</td>
                     </tr>
@@ -160,23 +173,23 @@ export function CleanDialog({ home, plan, onClose, onCleaned }: Props) {
             </div>
             {report.trashed_bytes > 0 && (
               <p className="note">
-                {formatBytes(report.trashed_bytes)} went to the Trash. That space is freed when you empty the Trash; until
+                {formatBytes(report.trashed_bytes)} went to the {trashName}. That space is freed when you empty it; until
                 then you can put it back.
               </p>
             )}
             {report.freed_bytes < report.deleted_bytes * 0.8 && report.deleted_bytes > 0 && (
               <p className="note">
-                Less space came back than the deleted size. Usually APFS clones or hardlinks share those blocks, or a
-                local snapshot still references them (see Snapshots).
+                Less space came back than the deleted size. Usually clones or hardlinks share those blocks, or a local
+                snapshot still references them (see Snapshots).
               </p>
             )}
             <ul className="outcomes">
               {report.outcomes.map((o) => (
                 <li key={o.path} className={o.status}>
                   <span className="path" title={o.path}>
-                    {tildify(o.path, home)}
+                    {tildify(o.path, home, pathSep)}
                   </span>
-                  <span>{STATUS_TEXT[o.status]}</span>
+                  <span>{statusText(o.status, trashName)}</span>
                   {o.message && <span className="small warn">{o.message}</span>}
                 </li>
               ))}
@@ -185,7 +198,7 @@ export function CleanDialog({ home, plan, onClose, onCleaned }: Props) {
             <div className="actions">
               {report.trashed_bytes > 0 && !undone && (
                 <button className="ghost" onClick={undo}>
-                  Undo (put back from Trash)
+                  Undo (put back from {trashName})
                 </button>
               )}
               <button className="primary" onClick={onClose}>

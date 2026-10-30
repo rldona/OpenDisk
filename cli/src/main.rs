@@ -15,7 +15,7 @@ use opendisk_core::format::{bytes, parse_bytes};
 use opendisk_core::journal::Journal;
 use opendisk_core::rules::{RuleSet, Safety};
 use opendisk_core::scan::{self, DirNode, ScanOptions};
-use opendisk_core::system::RealSystem;
+use opendisk_core::system::{RealSystem, TRASH_NAME};
 use opendisk_core::{fda, index, paths, snapshots};
 
 #[derive(Parser)]
@@ -25,8 +25,8 @@ use opendisk_core::{fda, index, paths, snapshots};
     about = "Find what fills your disk and free space safely"
 )]
 struct Cli {
-    /// Home folder the rules apply to (default: $HOME). Point it at a fixture
-    /// tree to try OpenDisk without touching your files.
+    /// Home folder the rules apply to (default: $HOME or %USERPROFILE%). Point
+    /// it at a fixture tree to try OpenDisk without touching your files.
     #[arg(long, global = true)]
     home: Option<PathBuf>,
     #[command(subcommand)]
@@ -37,8 +37,8 @@ struct Cli {
 enum Command {
     /// Scan a folder and show where the space goes.
     Scan {
-        /// Folder to scan (default: the home folder). Use `/System/Volumes/Data`
-        /// for the whole data volume.
+        /// Folder to scan (default: the home folder). Use the data volume root
+        /// (`/System/Volumes/Data` on macOS, `/` or `C:\` elsewhere).
         path: Option<PathBuf>,
         /// Levels of folders to print (and to include with --json).
         #[arg(long, default_value_t = 2)]
@@ -83,7 +83,7 @@ enum Command {
         /// Delete regenerable caches directly instead of moving them to the Trash.
         #[arg(long)]
         delete_regenerable: bool,
-        /// Allow emptying the Trash (permanent).
+        /// Allow emptying the Trash (permanent; macOS and Linux only).
         #[arg(long)]
         allow_permanent: bool,
         /// Don't ask for confirmation before executing.
@@ -97,8 +97,10 @@ enum Command {
     /// List the built-in rules.
     Rules,
     /// Show APFS local snapshots.
+    #[command(hide = cfg!(not(target_os = "macos")))]
     Snapshots,
     /// Check Full Disk Access.
+    #[command(hide = cfg!(not(target_os = "macos")))]
     Fda {
         /// Open the Full Disk Access settings pane.
         #[arg(long)]
@@ -126,8 +128,8 @@ impl From<SafetyArg> for Safety {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     let home = match cli.home {
-        Some(h) => std::fs::canonicalize(&h).with_context(|| format!("--home {}", h.display()))?,
-        None => std::env::var_os("HOME").map(PathBuf::from).context("HOME is not set")?,
+        Some(h) => paths::canonicalize(&h).with_context(|| format!("--home {}", h.display()))?,
+        None => paths::home_dir().context("cannot find the home folder")?,
     };
     match cli.command {
         Command::Scan {
@@ -174,6 +176,15 @@ fn min_bytes(s: &str) -> Result<u64> {
     parse_bytes(s).with_context(|| format!("invalid size {s:?}"))
 }
 
+/// Clears the progress line. Windows terminals do not always understand ANSI.
+fn clear_line() {
+    if cfg!(windows) {
+        eprint!("\r                 \r");
+    } else {
+        eprint!("\r\x1b[2K");
+    }
+}
+
 fn cmd_scan(home: &Path, root: PathBuf, depth: usize, top: usize, json: bool, no_index: bool) -> Result<()> {
     let opts = ScanOptions::new(&root);
     let progress = opts.progress.clone();
@@ -198,7 +209,7 @@ fn cmd_scan(home: &Path, root: PathBuf, depth: usize, top: usize, json: bool, no
     done.store(true, Ordering::Relaxed);
     let _ = ticker.join();
     if show {
-        eprint!("\r\x1b[2K");
+        clear_line();
     }
     let result = result?;
     if !no_index {
@@ -222,8 +233,15 @@ fn cmd_scan(home: &Path, root: PathBuf, depth: usize, top: usize, json: bool, no
     );
     print_tree(&result.tree, 1, depth, top);
     if !result.denied.is_empty() {
+        #[cfg(target_os = "macos")]
         println!(
             "\n{} folders could not be read (e.g. {}). Grant Full Disk Access to your terminal to include them.",
+            result.denied.len(),
+            result.denied[0].display()
+        );
+        #[cfg(not(target_os = "macos"))]
+        println!(
+            "\n{} folders could not be read (e.g. {}). Check their permissions.",
             result.denied.len(),
             result.denied[0].display()
         );
@@ -318,7 +336,7 @@ fn cmd_findings(home: &Path, min_size: &str, all: bool, json: bool) -> Result<()
 
 fn display_home(path: &Path, home: &Path) -> String {
     match path.strip_prefix(home) {
-        Ok(rel) => format!("~/{}", rel.display()),
+        Ok(rel) => format!("~{}{}", std::path::MAIN_SEPARATOR, rel.display()),
         Err(_) => path.display().to_string(),
     }
 }
@@ -387,7 +405,7 @@ fn cmd_clean(home: &Path, args: CleanArgs) -> Result<()> {
             );
         }
         println!(
-            "\nTo Trash: {}   Delete now: {}   Via tool: {}   Blocked: {}",
+            "\nTo {TRASH_NAME}: {}   Delete now: {}   Via tool: {}   Blocked: {}",
             bytes(plan.trash_bytes),
             bytes(plan.delete_bytes),
             bytes(plan.command_bytes),
@@ -431,6 +449,13 @@ fn cmd_clean(home: &Path, args: CleanArgs) -> Result<()> {
             o.message.as_deref().unwrap_or("")
         );
     }
+    for o in report.outcomes.iter().filter(|o| o.status == Status::Erased) {
+        println!(
+            "  erased: {} — {}",
+            display_home(&o.path, home),
+            o.message.as_deref().unwrap_or("")
+        );
+    }
     if dry_run {
         println!(
             "\nDry run: {ok} items would be cleaned, {} skipped. Nothing was changed. Re-run with --execute to clean.",
@@ -441,10 +466,10 @@ fn cmd_clean(home: &Path, args: CleanArgs) -> Result<()> {
             "\nDone (run {}): {ok} items cleaned, {} skipped, {} failed.",
             report.run_id, report.skipped, report.failed
         );
-        println!("Space really freed (statfs): {}", signed_bytes(report.freed_bytes));
+        println!("Space really freed: {}", signed_bytes(report.freed_bytes));
         if report.trashed_bytes > 0 {
             println!(
-                "Moved to Trash: {} — freed when you empty the Trash. Undo with `opendisk undo {}`.",
+                "Moved to {TRASH_NAME}: {} — freed when you empty it. Undo with `opendisk undo {}`.",
                 bytes(report.trashed_bytes),
                 report.run_id
             );

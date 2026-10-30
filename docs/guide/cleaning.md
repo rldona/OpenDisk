@@ -12,7 +12,7 @@ The action for each item is:
 
 | Action | When |
 | --- | --- |
-| **Move to Trash** | The default for everything. You can put items back. |
+| **Move to Trash** (Recycle Bin on Windows) | The default for everything. You can put items back. |
 | **Delete now** | Only for *regenerable* caches, and only if you ticked **Delete regenerable caches immediately**. Frees the space right away. Also used for items already in the Trash when you confirm emptying it. |
 | **Run …** | The rule has an official tool (`brew cleanup`, `docker system prune`…). OpenDisk runs it instead of deleting files. |
 | **Skip** | Something is wrong: the app that owns it is running, it is protected, it is a symlink, it changed… The reason is shown. |
@@ -41,8 +41,8 @@ sizes you selected.
 
 That number can differ from what you selected:
 
-- **Moved to the Trash** frees nothing until you empty the Trash. OpenDisk tells you how much went there.
-- **APFS clones and hardlinks** share blocks with other files, so deleting one copy frees less.
+- **Moved to the Trash** frees nothing until you empty the Trash (the Recycle Bin on Windows). OpenDisk tells you how much went there.
+- **Clones and hardlinks** share blocks with other files, so deleting one copy frees less.
 - **Local snapshots** can keep deleted blocks for a while. See [APFS snapshots](./snapshots).
 - Other apps write to the disk at the same time.
 

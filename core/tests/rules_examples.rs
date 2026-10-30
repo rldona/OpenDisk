@@ -6,12 +6,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use opendisk_core::findings::{self, MeasureSizer};
-use opendisk_core::paths::expand_tilde;
+use opendisk_core::paths::{canonicalize, expand_tilde};
 use opendisk_core::rules::{MatchKind, RuleSet};
 
 fn fake_home() -> (tempfile::TempDir, PathBuf) {
     let tmp = tempfile::tempdir().unwrap();
-    let home = fs::canonicalize(tmp.path()).unwrap().join("home");
+    let home = canonicalize(tmp.path()).unwrap().join("home");
     fs::create_dir_all(&home).unwrap();
     (tmp, home)
 }
@@ -48,6 +48,11 @@ fn every_linux_rule_claims_its_examples() {
     check_examples(RuleSet::linux());
 }
 
+#[test]
+fn every_windows_rule_claims_its_examples() {
+    check_examples(RuleSet::windows());
+}
+
 fn check_examples(rules: &RuleSet) {
     let (_tmp, home) = fake_home();
     for rule in &rules.rules {
@@ -81,6 +86,7 @@ fn check_examples(rules: &RuleSet) {
     assert!(failures.is_empty(), "rule failures:\n{}", failures.join("\n"));
 }
 
+#[cfg(unix)]
 #[test]
 fn symlinked_folders_are_never_matched_or_followed() {
     let rules = RuleSet::macos();

@@ -35,7 +35,15 @@
   const running = new Set(["com.google.Chrome"]);
 
   const handlers = {
-    app_info: () => ({ home: root, version: "demo", data_volume: "/System/Volumes/Data" }),
+    app_info: () => ({
+      home: root,
+      version: "demo",
+      data_volume: "/System/Volumes/Data",
+      os: "macos",
+      path_sep: "/",
+      trash_name: "Trash",
+      file_manager: "Finder",
+    }),
     disk_info: () => ({ total: D.disk.total, available }),
     fda_status: () => ({ state: params.get("fda") === "denied" ? "denied" : "granted", probed: null }),
     open_fda_settings: () => null,

@@ -20,7 +20,7 @@ function useSize<T extends HTMLElement>() {
 }
 
 /** Disk map of the last scan, hidden folders included, two levels at a time. */
-export function Treemap({ home, fileManager, root }: { home: string; fileManager: string; root: string }) {
+export function Treemap({ home, fileManager, pathSep, root }: { home: string; fileManager: string; pathSep: string; root: string }) {
   const [path, setPath] = useState(root);
   const [tree, setTree] = useState<TreeNode | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,16 +53,16 @@ export function Treemap({ home, fileManager, root }: { home: string; fileManager
   }, [tree, size]);
 
   const crumbs = useMemo(() => {
-    const parts: { label: string; path: string }[] = [{ label: tildify(root, home), path: root }];
+    const parts: { label: string; path: string }[] = [{ label: tildify(root, home, pathSep), path: root }];
     if (path !== root && path.startsWith(root)) {
       let acc = root;
-      for (const seg of path.slice(root.length).split("/").filter(Boolean)) {
-        acc = `${acc}/${seg}`;
+      for (const seg of path.slice(root.length).split(/[\\/]/).filter(Boolean)) {
+        acc = `${acc}${acc.endsWith(pathSep) ? "" : pathSep}${seg}`;
         parts.push({ label: seg, path: acc });
       }
     }
     return parts;
-  }, [path, root, home]);
+  }, [path, root, home, pathSep]);
 
   const topIndex = new Map<TreeNode, number>();
   tree?.children.forEach((c, i) => topIndex.set(c, i));
@@ -72,7 +72,7 @@ export function Treemap({ home, fileManager, root }: { home: string; fileManager
       <div className="crumbs">
         {crumbs.map((c, i) => (
           <span key={c.path}>
-            {i > 0 && <span className="sep">/</span>}
+            {i > 0 && <span className="sep">{pathSep}</span>}
             <button className="link" onClick={() => setPath(c.path)} disabled={c.path === path}>
               {c.label}
             </button>
@@ -106,7 +106,7 @@ export function Treemap({ home, fileManager, root }: { home: string; fileManager
                 background: n.depth === 1 ? `${color}33` : `${color}${n.data.other ? "55" : "aa"}`,
                 borderColor: color,
               }}
-              title={`${tildify(n.data.path, home)}${n.data.other ? ` (${n.data.name})` : ""}\n${formatBytes(n.data.size)}${n.data.denied ? "\nNo access: grant Full Disk Access" : ""}`}
+              title={`${tildify(n.data.path, home, pathSep)}${n.data.other ? ` (${n.data.name})` : ""}\n${formatBytes(n.data.size)}${n.data.denied ? "\nNo access" : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
                 if (canOpen) setPath(n.data.path);

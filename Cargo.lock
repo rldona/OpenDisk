@@ -2335,7 +2335,7 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "opendisk-app"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "opendisk-core",
  "serde",
@@ -2346,7 +2346,7 @@ dependencies = [
 
 [[package]]
 name = "opendisk-cli"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -2357,10 +2357,11 @@ dependencies = [
 
 [[package]]
 name = "opendisk-core"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "dashmap",
+ "dunce",
  "filetime",
  "globset",
  "libc",
@@ -2373,6 +2374,7 @@ dependencies = [
  "serde_yaml",
  "tempfile",
  "thiserror 2.0.21",
+ "windows",
 ]
 
 [[package]]

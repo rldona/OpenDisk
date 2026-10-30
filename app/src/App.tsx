@@ -99,7 +99,10 @@ export default function App() {
 
   const home = info?.home ?? "";
   const isMac = (info?.os ?? "macos") === "macos";
-  const fileManager = isMac ? "Finder" : "Files";
+  const fileManager = info?.file_manager ?? (isMac ? "Finder" : "Files");
+  const trashName = info?.trash_name ?? "Trash";
+  const pathSep = info?.path_sep ?? "/";
+  const volumeLabel = isMac ? "Whole data volume" : `Whole disk (${info?.data_volume ?? "/"})`;
   const used = disk ? disk.total - disk.available : 0;
 
   return (
@@ -124,7 +127,7 @@ export default function App() {
         <div className="scan-controls">
           <select value={target} onChange={(e) => setTarget(e.target.value as "home" | "volume")} disabled={phase === "scanning"}>
             <option value="home">Home folder</option>
-            <option value="volume">Whole data volume</option>
+            <option value="volume">{volumeLabel}</option>
           </select>
           {phase === "scanning" ? (
             <button onClick={() => api.cancelScan()}>Cancel</button>
@@ -166,7 +169,7 @@ export default function App() {
             <p>
               OpenDisk scans {target === "home" ? "your home folder" : "the whole data volume"}, hidden folders included,
               and explains every cache it finds: what it is, whether it comes back on its own, and what must be closed
-              first. Nothing is touched until you preview and confirm, and most things go to the Trash.
+              first. Nothing is touched until you preview and confirm, and most things go to the {trashName}.
             </p>
             <button className="primary big" onClick={startScan}>
               Scan {target === "home" ? "home folder" : "data volume"}
@@ -245,12 +248,13 @@ export default function App() {
               <Findings
                 home={home}
                 fileManager={fileManager}
+                pathSep={pathSep}
                 findings={findings}
                 selected={selected}
                 onChange={setSelected}
               />
             )}
-            {tab === "map" && <Treemap home={home} fileManager={fileManager} root={done.root} />}
+            {tab === "map" && <Treemap home={home} fileManager={fileManager} pathSep={pathSep} root={done.root} />}
             {tab === "snapshots" && <Snapshots />}
           </>
         )}
@@ -261,14 +265,14 @@ export default function App() {
           <span>
             <strong>{selected.size}</strong> selected · <strong>{formatBytes(selectedBytes)}</strong>
           </span>
-          <label title="Regenerable caches are deleted right away instead of going to the Trash, so the space comes back now.">
+          <label title={`Regenerable caches are deleted right away instead of going to the ${trashName}, so the space comes back now.`}>
             <input type="checkbox" checked={deleteRegenerable} onChange={(e) => setDeleteRegenerable(e.target.checked)} />
             Delete regenerable caches immediately
           </label>
           {selectsPermanent && (
             <label className="warn">
               <input type="checkbox" checked={allowPermanent} onChange={(e) => setAllowPermanent(e.target.checked)} />
-              Empty the Trash items for good
+              Empty the {trashName} items for good
             </label>
           )}
           <button className="ghost" onClick={() => setSelected(new Map())}>
@@ -283,6 +287,8 @@ export default function App() {
       {plan && (
         <CleanDialog
           home={home}
+          pathSep={pathSep}
+          trashName={trashName}
           plan={plan}
           onClose={() => setPlan(null)}
           onCleaned={async () => {

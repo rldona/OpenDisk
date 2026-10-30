@@ -91,17 +91,23 @@ impl Journal {
             if already.contains(&&e.path) {
                 continue;
             }
-            let Some(from) = &e.trashed_to else { continue };
+            let Some(from) = &e.trashed_to else {
+                failed.push((
+                    e.path.clone(),
+                    format!(
+                        "its location in the {} is unknown; restore it from there",
+                        crate::system::TRASH_NAME
+                    ),
+                ));
+                continue;
+            };
             let result = if fs::symlink_metadata(&e.path).is_ok() {
                 Err("something already exists at the original location".to_string())
             } else if fs::symlink_metadata(from).is_err() {
-                Err("no longer in the Trash".to_string())
+                Err(format!("no longer in the {}", crate::system::TRASH_NAME))
             } else {
-                fs::rename(from, &e.path).map_err(|err| err.to_string())
+                crate::system::restore_trashed(from, &e.path).map_err(|err| err.to_string())
             };
-            if result.is_ok() {
-                crate::system::forget_trash_info(from);
-            }
             match result {
                 Ok(()) => {
                     self.append(&JournalEntry {

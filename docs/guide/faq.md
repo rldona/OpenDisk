@@ -8,7 +8,7 @@ slower while the cache fills again. OpenDisk says for each rule what happens nex
 
 ## Why does the free space not go up after cleaning?
 
-Probably because the items went to the Trash: empty it to get the space back. Other reasons are APFS clones and
+Probably because the items went to the Trash (the Recycle Bin on Windows): empty it to get the space back. Other reasons are APFS clones and
 hardlinks sharing blocks, and local snapshots holding on to deleted data. See [Results](./cleaning#results).
 
 ## Why is "System Data" so big in System Settings?
@@ -22,7 +22,9 @@ No. It only works inside your home folder, with your own permissions. It never a
 
 ## Does it work on Windows or Linux?
 
-Not yet. The engine is written to be portable and those platforms are planned.
+Yes. Linux has a `.deb` for Ubuntu 22.04 and later and an `.AppImage` for any distribution; Windows 10/11 has an NSIS
+installer (and an `.msi` when WiX is available). Both platforms have their own rule list, and the command line tool is
+published for both. On Windows the app uses the Recycle Bin and leaves emptying it to File Explorer.
 
 ## Why is the app not in the Mac App Store?
 
