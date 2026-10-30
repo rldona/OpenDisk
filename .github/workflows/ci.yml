@@ -278,7 +278,12 @@ jobs:
           path: dist
       - name: Add checksums
         run: |
-          find dist -type f ! -name SHA256SUMS.txt -print0 \
+          # Only real deliverables: the macOS .app artifact also contains its
+          # bundle internals (Info.plist, icon.icns...), which must not ship.
+          find dist -type f \
+            \( -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' -o -name '*.msi' \
+               -o -name '*-setup.exe' -o -name 'opendisk-*.zip' -o -name 'opendisk-*.tar.gz' \) \
+            -print0 \
             | sort -z \
             | xargs -0 sha256sum \
             | sed 's#  dist/#  #' > dist/SHA256SUMS.txt
@@ -288,7 +293,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          files=$(find dist -type f)
+          files=$(find dist -type f \
+            \( -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' -o -name '*.msi' \
+               -o -name '*-setup.exe' -o -name 'opendisk-*.zip' -o -name 'opendisk-*.tar.gz' \
+               -o -name 'SHA256SUMS.txt' \))
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" $files --clobber
           else
