@@ -102,10 +102,12 @@ fn link_dir(target: &Path, link: &Path) {
     std::os::unix::fs::symlink(target, link).unwrap();
     #[cfg(windows)]
     {
+        // mklink treats `/` as a switch, so use native separators.
+        let native = |p: &Path| p.to_string_lossy().replace('/', "\\");
         let status = std::process::Command::new("cmd")
             .args(["/C", "mklink", "/J"])
-            .arg(link)
-            .arg(target)
+            .arg(native(link))
+            .arg(native(target))
             .status()
             .unwrap();
         assert!(status.success(), "mklink /J {link:?} -> {target:?}");

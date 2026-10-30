@@ -391,12 +391,17 @@ pub fn ancestors_are_real(path: &Path) -> bool {
     {
         // Canonicalising the whole path also resolves junctions and 8.3 names
         // in the last component. A mismatch means something was rewritten.
+        // Components are compared (not strings) because `canonicalize` uses
+        // `\` and the paths in rules and tests may keep `/`.
         let Ok(real) = canonicalize(path) else {
             return false;
         };
-        let a = real.to_string_lossy().to_lowercase();
-        let b = path.to_string_lossy().trim_end_matches(['\\', '/']).to_lowercase();
-        a.trim_end_matches(['\\', '/']) == b
+        let parts = |p: &Path| -> Vec<String> {
+            p.components()
+                .map(|c| c.as_os_str().to_string_lossy().to_lowercase())
+                .collect()
+        };
+        parts(&real) == parts(path)
     }
     #[cfg(not(windows))]
     {
