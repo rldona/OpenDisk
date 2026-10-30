@@ -1,12 +1,14 @@
 //! Windows specifics: Recycle Bin, volumes, processes and known folders.
 
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::ffi::c_void;
 use std::io;
 use std::mem::size_of;
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 
-use windows::core::{HSTRING, PCWSTR, PWSTR};
+use windows::core::{implement, Ref, HSTRING, PCWSTR, PWSTR};
 use windows::Win32::Foundation::{CloseHandle, HANDLE, MAX_PATH};
 use windows::Win32::Security::Authorization::ConvertSidToStringSidW;
 use windows::Win32::Security::{GetTokenInformation, TokenUser, TOKEN_QUERY, TOKEN_USER};
@@ -24,9 +26,10 @@ use windows::Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, RRF_RT_R
 use windows::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 use windows::Win32::System::WindowsProgramming::DRIVE_FIXED;
 use windows::Win32::UI::Shell::{
-    FOLDERID_Profile, FileOperation, IFileOperation, IShellItem, SHCreateItemFromParsingName, SHGetKnownFolderPath,
-    FOFX_EARLYFAILURE, FOFX_RECYCLEONDELETE, FOF_ALLOWUNDO, FOF_NOCONFIRMATION, FOF_NOERRORUI, FOF_SILENT,
-    FOF_WANTNUKEWARNING, KF_FLAG_DEFAULT,
+    FOLDERID_Profile, FileOperation, IFileOperation, IFileOperationProgressSink, IFileOperationProgressSink_Impl,
+    IShellItem, SHCreateItemFromParsingName, SHGetKnownFolderPath, FOFX_EARLYFAILURE, FOFX_RECYCLEONDELETE,
+    FOF_ALLOWUNDO, FOF_NOCONFIRMATION, FOF_NOERRORUI, FOF_SILENT, FOF_WANTNUKEWARNING, KF_FLAG_DEFAULT,
+    SIGDN_FILESYSPATH,
 };
 
 use crate::system::recycle::{self, parse_info};
@@ -174,7 +177,9 @@ fn trash_on_thread(path: &Path) -> io::Result<TrashOutcome> {
     let _com = ComGuard;
 
     let text = HSTRING::from(path.to_string_lossy().as_ref());
-    // SAFETY: the shell objects are created, used and dropped on this thread.
+    let seen = Rc::new(RefCell::new(None));
+    // SAFETY: the shell objects are created, used and dropped on this thread,
+    // and the sink stays alive until PerformOperations has finished.
     unsafe {
         let op: IFileOperation = CoCreateInstance(&FileOperation, None, CLSCTX_ALL)?;
         op.SetOperationFlags(
@@ -187,7 +192,9 @@ fn trash_on_thread(path: &Path) -> io::Result<TrashOutcome> {
                 | FOFX_EARLYFAILURE,
         )?;
         let item: IShellItem = SHCreateItemFromParsingName(&text, None)?;
-        op.DeleteItem(Some(&item), None)?;
+        let sink: IFileOperationProgressSink = DeleteSink { seen: seen.clone() }.into();
+        op.DeleteItem(&item, &sink)?;
+        op.Advise(&sink)?;
         op.PerformOperations()?;
         if op.GetAnyOperationsAborted()?.as_bool() {
             return Err(io::Error::other("the operation was cancelled"));
@@ -196,7 +203,146 @@ fn trash_on_thread(path: &Path) -> io::Result<TrashOutcome> {
     if std::fs::symlink_metadata(path).is_ok() {
         return Err(io::Error::other("the item is still there"));
     }
+    if let Some(outcome) = seen.borrow_mut().take() {
+        return Ok(outcome);
+    }
+    // The shell did not call the sink (unusual); locate the $R entry instead.
     Ok(find_recycled(path))
+}
+
+/// Receives the result of the delete from the shell: `psiNewlyCreated` is the
+/// `$R` entry in the Recycle Bin, or null when Windows erased the item.
+#[implement(IFileOperationProgressSink)]
+struct DeleteSink {
+    seen: Rc<RefCell<Option<TrashOutcome>>>,
+}
+
+fn item_path(item: &IShellItem) -> Option<PathBuf> {
+    // SAFETY: the string is owned by COM and freed after copying it.
+    unsafe {
+        let name = item.GetDisplayName(SIGDN_FILESYSPATH).ok()?;
+        let text = name.to_string().ok();
+        CoTaskMemFree(Some(name.0 as *const c_void));
+        text.map(PathBuf::from)
+    }
+}
+
+impl IFileOperationProgressSink_Impl for DeleteSink_Impl {
+    fn StartOperations(&self) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn FinishOperations(&self, _hrresult: windows::core::HRESULT) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn PreRenameItem(
+        &self,
+        _dwflags: u32,
+        _psiitem: Ref<IShellItem>,
+        _psznewname: &PCWSTR,
+    ) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn PostRenameItem(
+        &self,
+        _dwflags: u32,
+        _psiitem: Ref<IShellItem>,
+        _psznewname: &PCWSTR,
+        _hrrename: windows::core::HRESULT,
+        _psinewlycreated: Ref<IShellItem>,
+    ) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn PreMoveItem(
+        &self,
+        _dwflags: u32,
+        _psiitem: Ref<IShellItem>,
+        _psidestinationfolder: Ref<IShellItem>,
+        _psznewname: &PCWSTR,
+    ) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn PostMoveItem(
+        &self,
+        _dwflags: u32,
+        _psiitem: Ref<IShellItem>,
+        _psidestinationfolder: Ref<IShellItem>,
+        _psznewname: &PCWSTR,
+        _hrmove: windows::core::HRESULT,
+        _psinewlycreated: Ref<IShellItem>,
+    ) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn PreCopyItem(
+        &self,
+        _dwflags: u32,
+        _psiitem: Ref<IShellItem>,
+        _psidestinationfolder: Ref<IShellItem>,
+        _psznewname: &PCWSTR,
+    ) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn PostCopyItem(
+        &self,
+        _dwflags: u32,
+        _psiitem: Ref<IShellItem>,
+        _psidestinationfolder: Ref<IShellItem>,
+        _psznewname: &PCWSTR,
+        _hrcopy: windows::core::HRESULT,
+        _psinewlycreated: Ref<IShellItem>,
+    ) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn PreDeleteItem(&self, _dwflags: u32, _psiitem: Ref<IShellItem>) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn PostDeleteItem(
+        &self,
+        _dwflags: u32,
+        _psiitem: Ref<IShellItem>,
+        hrdelete: windows::core::HRESULT,
+        psinewlycreated: Ref<IShellItem>,
+    ) -> windows::core::Result<()> {
+        if hrdelete.is_ok() {
+            let outcome = match psinewlycreated.as_ref() {
+                Some(item) => TrashOutcome::Moved(item_path(item)),
+                None => TrashOutcome::Erased,
+            };
+            *self.seen.borrow_mut() = Some(outcome);
+        }
+        Ok(())
+    }
+    fn PreNewItem(
+        &self,
+        _dwflags: u32,
+        _psidestinationfolder: Ref<IShellItem>,
+        _psznewname: &PCWSTR,
+    ) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn PostNewItem(
+        &self,
+        _dwflags: u32,
+        _psidestinationfolder: Ref<IShellItem>,
+        _psznewname: &PCWSTR,
+        _psztemplatename: &PCWSTR,
+        _dwfileattributes: u32,
+        _hrnew: windows::core::HRESULT,
+        _psinewitem: Ref<IShellItem>,
+    ) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn UpdateProgress(&self, _iworktotal: u32, _iworksofar: u32) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn ResetTimer(&self) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn PauseTimer(&self) -> windows::core::Result<()> {
+        Ok(())
+    }
+    fn ResumeTimer(&self) -> windows::core::Result<()> {
+        Ok(())
+    }
 }
 
 fn current_sid() -> Option<String> {
