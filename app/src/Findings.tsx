@@ -3,8 +3,8 @@ import { api, formatBytes, tildify, type Finding, type Safety, type Selection } 
 
 export const SAFETY_TEXT: Record<Safety, { label: string; hint: string }> = {
   regenerable: { label: "Regenerable", hint: "A cache the tool rebuilds on its own." },
-  review: { label: "Review", hint: "Rebuildable but costly to get back. Goes to the Trash." },
-  personal: { label: "Personal", hint: "Your own data. Only ever moved to the Trash." },
+  review: { label: "Review", hint: "Rebuildable but costly to get back. Goes to the Trash or Recycle Bin." },
+  personal: { label: "Personal", hint: "Your own data. Only ever moved to the Trash or Recycle Bin." },
 };
 
 /** Renders `backticked` spans of rule text as code. */
@@ -26,12 +26,15 @@ export function SafetyBadge({ safety }: { safety: Safety }) {
 
 interface Props {
   home: string;
+  /** "Finder" on macOS, "Files" on Linux, "File Explorer" on Windows. */
+  fileManager: string;
+  pathSep: string;
   findings: Finding[];
   selected: Map<string, Selection>;
   onChange: (next: Map<string, Selection>) => void;
 }
 
-export function Findings({ home, findings, selected, onChange }: Props) {
+export function Findings({ home, fileManager, pathSep, findings, selected, onChange }: Props) {
   const [open, setOpen] = useState<Set<string>>(new Set());
 
   const groups = useMemo(() => {
@@ -120,7 +123,7 @@ export function Findings({ home, findings, selected, onChange }: Props) {
                             onChange={(e) => toggleItems(f, [i.path], e.target.checked)}
                           />
                           <span className="path" title={i.path}>
-                            {tildify(i.path, home)}
+                            {tildify(i.path, home, pathSep)}
                           </span>
                         </label>
                         {i.requires_closed.length > 0 && (
@@ -129,7 +132,7 @@ export function Findings({ home, findings, selected, onChange }: Props) {
                           </span>
                         )}
                         <button className="ghost small" onClick={() => api.revealPath(i.path)}>
-                          Show in Finder
+                          Show in {fileManager}
                         </button>
                         <span className="size">{formatBytes(i.bytes)}</span>
                       </li>

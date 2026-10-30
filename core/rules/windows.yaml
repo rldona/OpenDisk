@@ -1,0 +1,649 @@
+# OpenDisk cleaning rules for Windows 10 and 11.
+#
+# Same format as macos.yaml. Windows has no app bundle IDs, so rules name the
+# processes that must not be running (`requires_no_process`, compared without
+# `.exe` and without case).
+#
+# `%LOCALAPPDATA%` and `%APPDATA%` are written as `~/AppData/Local` and
+# `~/AppData/Roaming`, their default locations inside the user profile. If a
+# profile has them redirected elsewhere those rules simply match nothing,
+# which is the safe failure.
+version: 1
+rules:
+  # ---------------------------------------------------------------- AI models
+  - id: gpt4all-models
+    name: GPT4All models
+    category: ai-models
+    safety: review
+    kind: file
+    paths: ["~/AppData/Local/nomic.ai/GPT4All/*.{gguf,bin}"]
+    explanation: >-
+      Local language models downloaded by GPT4All, often 4-8 GB each. You can
+      download them again from the app's model list. Quit GPT4All first.
+    requires_no_process: [gpt4all, chat]
+    examples: ["~/AppData/Local/nomic.ai/GPT4All/mistral-7b.Q4_0.gguf"]
+    non_examples: ["~/AppData/Local/nomic.ai/GPT4All/localdocs_v2.db"]
+
+  - id: ollama-models
+    name: Ollama models
+    category: ai-models
+    safety: review
+    paths: ["~/.ollama/models"]
+    explanation: >-
+      Models pulled with `ollama pull` when Ollama runs as your user. Removing
+      them means downloading again (`ollama pull <model>`). To remove a single
+      model use `ollama rm <model>`. The system service keeps its models
+      elsewhere, which OpenDisk does not touch.
+    requires_no_process: [ollama]
+    examples: ["~/.ollama/models"]
+
+  - id: lmstudio-models
+    name: LM Studio models
+    category: ai-models
+    safety: review
+    paths:
+      - "~/.lmstudio/models/*/*"
+      - "~/.cache/lm-studio/models/*/*"
+    explanation: >-
+      Models downloaded in LM Studio, one folder per model. They can be
+      downloaded again from LM Studio's Discover tab. Quit LM Studio first.
+    requires_no_process: [lm-studio, "LM Studio"]
+    examples:
+      - "~/.lmstudio/models/lmstudio-community/Qwen3-8B-GGUF"
+      - "~/.cache/lm-studio/models/TheBloke/Llama-2-7B-GGUF"
+
+  - id: huggingface-hub
+    name: Hugging Face model cache
+    category: ai-models
+    safety: review
+    paths:
+      - "~/.cache/huggingface/hub/*"
+      - "~/.cache/huggingface/xet"
+    exclude: ["~/.cache/huggingface/hub/.locks"]
+    explanation: >-
+      Models and tokenizers downloaded by transformers, diffusers and the
+      huggingface_hub library (`models--org--name`). They are downloaded again
+      the next time a script loads them, which can take a while for large
+      models.
+    examples:
+      - "~/.cache/huggingface/hub/models--meta-llama--Llama-3.1-8B"
+      - "~/.cache/huggingface/xet"
+    non_examples: ["~/.cache/huggingface/hub/.locks"]
+
+  - id: huggingface-datasets
+    name: Hugging Face datasets cache
+    category: ai-models
+    safety: review
+    paths: ["~/.cache/huggingface/datasets/*"]
+    explanation: >-
+      Datasets downloaded and preprocessed by the `datasets` library. They are
+      downloaded and processed again when a script loads them.
+    examples: ["~/.cache/huggingface/datasets/squad"]
+
+  - id: torch-hub
+    name: PyTorch hub cache
+    category: ai-models
+    safety: review
+    paths: ["~/.cache/torch/*"]
+    explanation: >-
+      Pretrained weights downloaded by torch.hub and torchvision. PyTorch
+      downloads them again when a model asks for them.
+    examples: ["~/.cache/torch/hub"]
+
+  - id: whisper-models
+    name: Whisper models
+    category: ai-models
+    safety: review
+    paths: ["~/.cache/whisper/*"]
+    explanation: >-
+      Speech recognition models downloaded by openai-whisper. They are
+      downloaded again on first use.
+    examples: ["~/.cache/whisper/large-v3.pt"]
+
+  - id: deno-cache
+    name: Deno cache
+    category: javascript
+    safety: regenerable
+    paths: ["~/AppData/Local/deno"]
+    explanation: >-
+      Modules and remote imports cached by Deno. They are downloaded again the
+      next time a script runs.
+    examples: ["~/AppData/Local/deno"]
+
+  # --------------------------------------------------------------- JavaScript
+  - id: npm-cache
+    name: npm cache
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/AppData/Local/npm-cache/_cacache"
+      - "~/AppData/Local/npm-cache/_npx"
+      - "~/AppData/Local/npm-cache/_logs"
+    explanation: >-
+      Every package tarball npm has downloaded, plus npx installs and logs.
+      Projects keep working; npm downloads packages again when needed (same as
+      `npm cache clean --force`).
+    examples:
+      - "~/AppData/Local/npm-cache/_cacache"
+      - "~/AppData/Local/npm-cache/_npx"
+
+  - id: pnpm-store
+    name: pnpm store
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/AppData/Local/pnpm/store"
+      - "~/AppData/Local/pnpm-cache"
+    explanation: >-
+      The content-addressed package store pnpm links projects against. Use
+      `pnpm store prune` to drop unreferenced packages; removing the whole
+      store makes every project reinstall on its next command.
+    examples:
+      - "~/AppData/Local/pnpm/store"
+      - "~/AppData/Local/pnpm-cache"
+
+  - id: yarn-cache
+    name: Yarn cache
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/AppData/Local/Yarn/Cache"
+      - "~/AppData/Local/Yarn/Berry/cache"
+    explanation: >-
+      Package archives Yarn keeps so installs are fast. Yarn downloads them
+      again on the next `yarn install` (same as `yarn cache clean`).
+    examples:
+      - "~/AppData/Local/Yarn/Cache"
+      - "~/AppData/Local/Yarn/Berry/cache"
+
+  - id: bun-cache
+    name: Bun cache
+    category: javascript
+    safety: regenerable
+    paths: ["~/.bun/install/cache"]
+    explanation: >-
+      Packages Bun has downloaded. They are fetched again by the next
+      `bun install`.
+    examples: ["~/.bun/install/cache"]
+
+  - id: node-gyp-cache
+    name: node-gyp cache
+    category: javascript
+    safety: regenerable
+    paths: ["~/AppData/Local/node-gyp/Cache"]
+    explanation: >-
+      Node headers and libraries downloaded when native modules compile. They
+      are downloaded again when a package needs to build.
+    examples: ["~/AppData/Local/node-gyp/Cache"]
+
+  - id: playwright-browsers
+    name: Playwright browsers
+    category: javascript
+    safety: review
+    paths: ["~/AppData/Local/ms-playwright"]
+    explanation: >-
+      Chromium, Firefox and WebKit builds downloaded by Playwright for its
+      tests. Run `npx playwright install` to download the versions your tests
+      need again.
+    examples: ["~/AppData/Local/ms-playwright"]
+
+  - id: cypress-cache
+    name: Cypress binary cache
+    category: javascript
+    safety: review
+    paths: ["~/AppData/Local/Cypress/Cache"]
+    explanation: >-
+      Cypress app builds downloaded for each version. They are downloaded again
+      on the next `cypress run` or `cypress open`.
+    examples: ["~/AppData/Local/Cypress/Cache"]
+
+  - id: electron-cache
+    name: Electron download cache
+    category: javascript
+    safety: regenerable
+    paths:
+      - "~/AppData/Local/electron/Cache"
+      - "~/AppData/Local/electron-builder/Cache"
+    explanation: >-
+      Electron binaries and installers cached while building desktop apps.
+      They are downloaded again by the next build.
+    examples:
+      - "~/AppData/Local/electron/Cache"
+      - "~/AppData/Local/electron-builder/Cache"
+
+  - id: parcel-cache
+    name: Parcel cache
+    category: javascript
+    safety: regenerable
+    paths: ["~/AppData/Local/Parcel/Cache"]
+    explanation: >-
+      Compiled bundles Parcel keeps between builds. The next build creates
+      them again from source.
+    examples: ["~/AppData/Local/Parcel/Cache"]
+
+  # ------------------------------------------------------------ Java & Android
+  - id: gradle-caches
+    name: Gradle caches
+    category: jvm
+    safety: regenerable
+    paths: ["~/.gradle/caches"]
+    explanation: >-
+      Dependencies and build artifacts Gradle downloaded. The next build
+      downloads them again (same as `gradle --stop` then deleting the cache).
+    requires_no_process: [java, gradle]
+    examples: ["~/.gradle/caches"]
+
+  - id: gradle-wrapper
+    name: Gradle distributions
+    category: jvm
+    safety: review
+    paths: ["~/.gradle/wrapper/dists"]
+    explanation: >-
+      Gradle versions downloaded by the wrapper, one folder each. The wrapper
+      downloads the version a project asks for again.
+    examples: ["~/.gradle/wrapper/dists"]
+
+  - id: maven-repository
+    name: Maven local repository
+    category: jvm
+    safety: review
+    paths: ["~/.m2/repository"]
+    explanation: >-
+      Every artifact Maven has downloaded for your projects. Deleting it makes
+      the next build download everything again; it can be several GB.
+    examples: ["~/.m2/repository"]
+
+  - id: android-avd
+    name: Android emulators
+    category: jvm
+    safety: review
+    paths: ["~/.android/avd"]
+    explanation: >-
+      Virtual devices created in Android Studio, including their disk images.
+      Create them again from the Device Manager. Quit the emulator first.
+    requires_no_process: [qemu-system-x86_64, emulator]
+    examples: ["~/.android/avd"]
+
+  # ------------------------------------------------------------------- Python
+  - id: pip-cache
+    name: pip cache
+    category: python
+    safety: regenerable
+    paths: ["~/AppData/Local/pip/cache"]
+    explanation: >-
+      Wheels and source archives pip keeps so installs are fast. They are
+      downloaded again when needed (same as `pip cache purge`).
+    examples: ["~/AppData/Local/pip/cache"]
+
+  - id: uv-cache
+    name: uv cache
+    category: python
+    safety: regenerable
+    paths: ["~/AppData/Local/uv/cache"]
+    explanation: >-
+      Packages and wheels uv has downloaded. The next `uv sync` or `uv pip
+      install` downloads them again.
+    examples: ["~/AppData/Local/uv/cache"]
+
+  - id: poetry-cache
+    name: Poetry cache
+    category: python
+    safety: regenerable
+    paths: ["~/AppData/Local/pypoetry/Cache"]
+    explanation: >-
+      Package archives Poetry caches while resolving and installing. They are
+      downloaded again the next time you install.
+    examples: ["~/AppData/Local/pypoetry/Cache"]
+
+  - id: conda-pkgs
+    name: conda package cache
+    category: python
+    safety: review
+    paths:
+      - "~/miniconda3/pkgs"
+      - "~/anaconda3/pkgs"
+      - "~/miniforge3/pkgs"
+    explanation: >-
+      Downloaded and extracted conda packages. Environments keep working; the
+      next install downloads what it needs again (or run `conda clean -a`).
+    examples:
+      - "~/miniconda3/pkgs"
+      - "~/anaconda3/pkgs"
+
+  # ---------------------------------------------------------------- Rust & Go
+  - id: cargo-registry
+    name: Cargo registry cache
+    category: rust-go
+    safety: regenerable
+    paths:
+      - "~/.cargo/registry/cache"
+      - "~/.cargo/registry/src"
+    explanation: >-
+      Crate archives and their extracted sources. The next `cargo build`
+      downloads them again from crates.io.
+    examples:
+      - "~/.cargo/registry/cache"
+      - "~/.cargo/registry/src"
+
+  - id: cargo-git
+    name: Cargo git checkouts
+    category: rust-go
+    safety: review
+    paths: ["~/.cargo/git/checkouts"]
+    explanation: >-
+      Git dependencies Cargo cloned to build your projects. They are cloned
+      again the next time a project needs them.
+    examples: ["~/.cargo/git/checkouts"]
+
+  - id: go-build
+    name: Go build cache
+    category: rust-go
+    safety: regenerable
+    paths: ["~/AppData/Local/go-build"]
+    explanation: >-
+      Compiled packages Go keeps to speed up builds. The next `go build`
+      compiles them again (same as `go clean -cache`).
+    examples: ["~/AppData/Local/go-build"]
+
+  - id: go-modcache
+    name: Go module cache
+    category: rust-go
+    safety: review
+    paths: ["~/go/pkg/mod"]
+    explanation: >-
+      Module sources downloaded by `go get`. The next build downloads them
+      again (or run `go clean -modcache`).
+    examples: ["~/go/pkg/mod"]
+
+  # --------------------------------------------------------------- Containers
+  - id: docker-disk
+    name: Docker Desktop disk image
+    category: containers
+    safety: review
+    paths: ["~/AppData/Local/Docker/wsl/disk"]
+    explanation: >-
+      Docker Desktop keeps images, containers and volumes in a virtual disk
+      that grows and does not shrink by itself. Run `docker system prune -a`
+      to remove unused data, then compact the disk from Docker Desktop's
+      settings. Deleting the file loses every image, container and volume.
+    requires_no_process: [Docker Desktop, com.docker.backend]
+    prefer_command:
+      argv: [docker, system, prune, -f]
+      description: Remove unused containers, images and build cache
+    examples: ["~/AppData/Local/Docker/wsl/disk"]
+
+  # ---------------------------------------------------------------- App caches
+  - id: temp-files
+    name: Temporary files older than 7 days
+    category: app-caches
+    safety: regenerable
+    paths: ["~/AppData/Local/Temp/*"]
+    min_age_days: 7
+    explanation: >-
+      Files apps left in the temporary folder and have not touched for a week.
+      Running programs recreate what they still need; a file in use cannot be
+      removed and is reported as skipped.
+    examples: ["~/AppData/Local/Temp/leftover.tmp"]
+
+  - id: d3d-shader-cache
+    name: Direct3D shader cache
+    category: app-caches
+    safety: regenerable
+    paths: ["~/AppData/Local/D3DSCache"]
+    explanation: >-
+      Compiled GPU shaders Windows keeps so games start faster. They are
+      recompiled on the next run.
+    examples: ["~/AppData/Local/D3DSCache"]
+
+  - id: nvidia-dx-cache
+    name: NVIDIA DirectX cache
+    category: app-caches
+    safety: regenerable
+    paths: ["~/AppData/Local/NVIDIA/DXCache"]
+    explanation: >-
+      Shaders compiled by the NVIDIA driver. They are compiled again the next
+      time a game needs them.
+    examples: ["~/AppData/Local/NVIDIA/DXCache"]
+
+  - id: amd-dx-cache
+    name: AMD DirectX cache
+    category: app-caches
+    safety: regenerable
+    paths: ["~/AppData/Local/AMD/DxCache"]
+    explanation: >-
+      Shaders compiled by the AMD driver. They are compiled again the next
+      time a game needs them.
+    examples: ["~/AppData/Local/AMD/DxCache"]
+
+  - id: vscode-cache
+    name: VS Code caches
+    category: app-caches
+    safety: regenerable
+    paths:
+      - "~/AppData/Roaming/Code/Cache"
+      - "~/AppData/Roaming/Code/Code Cache"
+      - "~/AppData/Roaming/Code/GPUCache"
+      - "~/AppData/Roaming/Code/CachedData"
+      - "~/AppData/Roaming/Code/CachedExtensionVSIXs"
+    explanation: >-
+      Chromium caches, downloaded extension packages and compiled code VS Code
+      rebuilds. Settings and extensions stay. Quit VS Code first.
+    requires_no_process: [Code]
+    examples:
+      - "~/AppData/Roaming/Code/Cache"
+      - "~/AppData/Roaming/Code/CachedExtensionVSIXs"
+
+  - id: cursor-cache
+    name: Cursor caches
+    category: app-caches
+    safety: regenerable
+    paths:
+      - "~/AppData/Roaming/Cursor/Cache"
+      - "~/AppData/Roaming/Cursor/Code Cache"
+      - "~/AppData/Roaming/Cursor/GPUCache"
+      - "~/AppData/Roaming/Cursor/CachedData"
+    explanation: >-
+      Chromium and compiled-code caches Cursor rebuilds on demand. Settings
+      and extensions stay. Quit Cursor first.
+    requires_no_process: [Cursor]
+    examples:
+      - "~/AppData/Roaming/Cursor/Cache"
+      - "~/AppData/Roaming/Cursor/GPUCache"
+
+  - id: slack-cache
+    name: Slack caches
+    category: app-caches
+    safety: regenerable
+    paths:
+      - "~/AppData/Roaming/Slack/Cache"
+      - "~/AppData/Roaming/Slack/Code Cache"
+      - "~/AppData/Roaming/Slack/GPUCache"
+    explanation: >-
+      Chromium caches Slack rebuilds. Messages and settings live elsewhere and
+      are not touched. Quit Slack first.
+    requires_no_process: [slack]
+    examples:
+      - "~/AppData/Roaming/Slack/Cache"
+      - "~/AppData/Roaming/Slack/GPUCache"
+
+  - id: discord-cache
+    name: Discord caches
+    category: app-caches
+    safety: regenerable
+    paths:
+      - "~/AppData/Roaming/discord/Cache"
+      - "~/AppData/Roaming/discord/Code Cache"
+      - "~/AppData/Roaming/discord/GPUCache"
+    explanation: >-
+      Chromium caches Discord rebuilds. Quit Discord first.
+    requires_no_process: [Discord]
+    examples:
+      - "~/AppData/Roaming/discord/Cache"
+      - "~/AppData/Roaming/discord/GPUCache"
+
+  - id: teams-cache
+    name: Microsoft Teams caches
+    category: app-caches
+    safety: regenerable
+    paths:
+      - "~/AppData/Roaming/Microsoft/Teams/Cache"
+      - "~/AppData/Roaming/Microsoft/Teams/Code Cache"
+      - "~/AppData/Roaming/Microsoft/Teams/GPUCache"
+    explanation: >-
+      Chromium caches Teams rebuilds. Quit Teams first.
+    requires_no_process: [ms-teams, Teams]
+    examples:
+      - "~/AppData/Roaming/Microsoft/Teams/Cache"
+      - "~/AppData/Roaming/Microsoft/Teams/GPUCache"
+
+  - id: jetbrains-caches
+    name: JetBrains IDE caches
+    category: app-caches
+    safety: regenerable
+    paths: ["~/AppData/Local/JetBrains/*/caches"]
+    explanation: >-
+      Indexes and caches IntelliJ, PyCharm, WebStorm and the other JetBrains
+      IDEs rebuild when they open a project. Quit the IDE first.
+    requires_no_process: [idea64, pycharm64, webstorm64, goland64]
+    examples: ["~/AppData/Local/JetBrains/IntelliJIdea2025.2/caches"]
+
+  - id: nuget-packages
+    name: NuGet package cache
+    category: app-caches
+    safety: review
+    paths: ["~/.nuget/packages"]
+    explanation: >-
+      Packages .NET restored for your projects. The next build restores them
+      again (or run `dotnet nuget locals all --clear`).
+    examples: ["~/.nuget/packages"]
+
+  - id: crash-dumps
+    name: Crash dumps
+    category: logs
+    safety: regenerable
+    kind: file
+    paths: ["~/AppData/Local/CrashDumps/*"]
+    explanation: >-
+      Memory dumps Windows wrote when an application crashed. They are only
+      useful while diagnosing that crash.
+    examples: ["~/AppData/Local/CrashDumps/app.exe.1234.dmp"]
+
+  - id: inet-cache
+    name: Windows internet cache
+    category: browsers
+    safety: regenerable
+    paths: ["~/AppData/Local/Microsoft/Windows/INetCache"]
+    explanation: >-
+      Pages, images and scripts cached by Windows and Internet Explorer
+      components. They are downloaded again when needed.
+    examples: ["~/AppData/Local/Microsoft/Windows/INetCache"]
+
+  # ----------------------------------------------------------------- Browsers
+  - id: chrome-cache
+    name: Chrome caches
+    category: browsers
+    safety: regenerable
+    paths:
+      - "~/AppData/Local/Google/Chrome/User Data/*/Cache"
+      - "~/AppData/Local/Google/Chrome/User Data/*/Code Cache"
+      - "~/AppData/Local/Google/Chrome/User Data/*/GPUCache"
+    explanation: >-
+      Pages, images, scripts and compiled code Chrome caches for each profile.
+      History, passwords and bookmarks live in other files and are not
+      touched. Quit Chrome first.
+    requires_no_process: [chrome]
+    examples:
+      - "~/AppData/Local/Google/Chrome/User Data/Default/Cache"
+      - "~/AppData/Local/Google/Chrome/User Data/Profile 1/GPUCache"
+
+  - id: edge-cache
+    name: Edge caches
+    category: browsers
+    safety: regenerable
+    paths:
+      - "~/AppData/Local/Microsoft/Edge/User Data/*/Cache"
+      - "~/AppData/Local/Microsoft/Edge/User Data/*/Code Cache"
+      - "~/AppData/Local/Microsoft/Edge/User Data/*/GPUCache"
+    explanation: >-
+      Pages, images, scripts and compiled code Edge caches for each profile.
+      Favourites and passwords live in other files and are not touched. Quit
+      Edge first.
+    requires_no_process: [msedge]
+    examples:
+      - "~/AppData/Local/Microsoft/Edge/User Data/Default/Cache"
+      - "~/AppData/Local/Microsoft/Edge/User Data/Profile 1/GPUCache"
+
+  - id: brave-cache
+    name: Brave caches
+    category: browsers
+    safety: regenerable
+    paths:
+      - "~/AppData/Local/BraveSoftware/Brave-Browser/User Data/*/Cache"
+      - "~/AppData/Local/BraveSoftware/Brave-Browser/User Data/*/Code Cache"
+      - "~/AppData/Local/BraveSoftware/Brave-Browser/User Data/*/GPUCache"
+    explanation: >-
+      Pages, images, scripts and compiled code Brave caches for each profile.
+      Bookmarks and passwords live in other files and are not touched. Quit
+      Brave first.
+    requires_no_process: [brave]
+    examples:
+      - "~/AppData/Local/BraveSoftware/Brave-Browser/User Data/Default/Cache"
+      - "~/AppData/Local/BraveSoftware/Brave-Browser/User Data/Profile 1/GPUCache"
+
+  - id: firefox-cache
+    name: Firefox cache
+    category: browsers
+    safety: regenerable
+    paths:
+      - "~/AppData/Local/Mozilla/Firefox/Profiles/*/cache2"
+      - "~/AppData/Local/Mozilla/Firefox/Profiles/*/startupCache"
+    explanation: >-
+      Pages and compiled scripts Firefox caches for each profile. History and
+      passwords live in other files. Quit Firefox first.
+    requires_no_process: [firefox]
+    examples:
+      - "~/AppData/Local/Mozilla/Firefox/Profiles/abcd.default/cache2"
+      - "~/AppData/Local/Mozilla/Firefox/Profiles/abcd.default/startupCache"
+
+  # ------------------------------------------------------------------- Logs
+  - id: vscode-logs
+    name: VS Code logs
+    category: logs
+    safety: regenerable
+    paths: ["~/AppData/Roaming/Code/logs"]
+    explanation: >-
+      Diagnostic logs VS Code writes each session. They are recreated on the
+      next start and are only useful when reporting a problem.
+    examples: ["~/AppData/Roaming/Code/logs"]
+
+  # --------------------------------------------------------------- Downloads
+  - id: old-installers
+    name: Old installers in Downloads
+    category: downloads
+    safety: personal
+    kind: file
+    min_age_days: 30
+    paths: ["~/Downloads/*.{exe,msi,msix,zip,iso}"]
+    explanation: >-
+      Installers and archives downloaded more than a month ago and never
+      touched since. They can be downloaded again, but they are your files:
+      check them before cleaning.
+    examples: ["~/Downloads/Setup.exe", "~/Downloads/tool.zip"]
+    non_examples: ["~/Downloads/notes.txt"]
+
+  # ---------------------------------------------------------------- Backups
+  - id: ios-backups
+    name: iPhone and iPad backups
+    category: backups
+    safety: personal
+    paths:
+      - "~/AppData/Roaming/Apple Computer/MobileSync/Backup/*"
+      - "~/Apple/MobileSync/Backup/*"
+    explanation: >-
+      Local backups of your iPhone or iPad made by iTunes or the Apple Devices
+      app. Deleting one loses the only copy of that backup unless iCloud or
+      another computer has it. Quit the Apple Devices app first.
+    requires_no_process: [AppleMobileDeviceService, Apple Devices]
+    examples:
+      - "~/AppData/Roaming/Apple Computer/MobileSync/Backup/00008110-001A2C3D4E5F"
+      - "~/Apple/MobileSync/Backup/00008110-001A2C3D4E5F"

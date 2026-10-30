@@ -6,19 +6,19 @@ that run against fake folder trees.
 
 ## Trash by default
 
-Items go to the Trash with the same system call Finder uses, and each action is written to a journal so a run can be
+Items go to the Trash (the Recycle Bin on Windows) through the same system call the file manager uses, and each action is written to a journal so a run can be
 [undone](./cleaning#undo). Only caches marked *regenerable* can be deleted directly, and only if you opt in.
 
 | Safety | Meaning | What OpenDisk does |
 | --- | --- | --- |
 | <Badge type="tip" text="regenerable" /> | A cache the owning tool rebuilds on demand | Trash, or delete if you tick *Delete regenerable caches immediately* |
 | <Badge type="warning" text="review" /> | Rebuildable but costly (models, archives, emulators) | Trash |
-| <Badge type="danger" text="personal" /> | Your own data (device backups, Docker volumes, the Trash) | Trash; emptying the Trash needs an extra confirmation |
+| <Badge type="danger" text="personal" /> | Your own data (device backups, Docker volumes, the Trash) | Trash; emptying the Trash needs an extra confirmation (macOS and Linux) |
 
 ## Only what a rule covers
 
 OpenDisk only cleans paths that one of its [rules](/reference/rules) covers, or that you picked yourself (those always
-go to the Trash). Each rule explains why its paths are safe to remove.
+go to the Trash). Each rule explains why its paths are safe to remove. On Windows, an item bigger than the Recycle Bin is blocked in the preview instead of letting Windows delete it permanently, and emptying the Recycle Bin is left to File Explorer.
 
 On top of that, a **hard denylist** refuses, whatever is selected:
 

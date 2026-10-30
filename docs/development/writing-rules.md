@@ -1,7 +1,9 @@
 # Writing rules
 
-Rules live in [`core/rules/macos.yaml`](https://github.com/rldona/OpenDisk/blob/main/core/rules/macos.yaml) and are
-compiled into the app. A rule describes one kind of reclaimable data:
+Rules live in `core/rules/macos.yaml`, `core/rules/linux.yaml` and `core/rules/windows.yaml`, and are compiled into the
+app. Every list is validated on every platform, so a broken Windows rule fails the macOS CI too. Windows rules write
+`%LOCALAPPDATA%` and `%APPDATA%` as `~/AppData/Local` and `~/AppData/Roaming`. A rule describes one kind of
+reclaimable data:
 
 ```yaml
 - id: npm-cache                       # unique, kebab-case

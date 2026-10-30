@@ -5,6 +5,7 @@ on:
     branches: [main]
     tags: ['v*']
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,8 +19,12 @@ env:
 
 jobs:
   rust:
-    name: Rust (fmt, clippy, tests)
-    runs-on: macos-latest
+    name: Rust (fmt, clippy, tests) on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-22.04, windows-latest]
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -29,6 +34,10 @@ jobs:
       - run: cargo fmt --all --check
       - run: cargo clippy -p opendisk-core -p opendisk-cli --all-targets -- -D warnings
       - run: cargo test -p opendisk-core -p opendisk-cli
+      # Safety net for the Recycle Bin code, which cannot run on macOS or Linux.
+      - name: Real Recycle Bin round trip
+        if: runner.os == 'Windows'
+        run: cargo test -p opendisk-core --test cleaner -- --ignored real_recycle_bin
 
   frontend:
     name: Frontend (lockfiles, typecheck, build)
@@ -58,8 +67,6 @@ jobs:
     name: macOS app bundle (unsigned)
     runs-on: macos-latest
     needs: [rust, frontend]
-    permissions:
-      contents: write # to publish a release when a v* tag is pushed
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -87,8 +94,203 @@ jobs:
             target/universal-apple-darwin/release/bundle/dmg/*.dmg
             target/universal-apple-darwin/release/bundle/macos/*.app
           if-no-files-found: error
-      - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
+
+  linux-app:
+    name: Linux .deb and .AppImage (Ubuntu 22.04+)
+    # 22.04 so the binaries link against an older glibc and install on 22.04
+    # and 24.04.
+    runs-on: ubuntu-22.04
+    needs: [rust, frontend]
+    env:
+      APPIMAGE_EXTRACT_AND_RUN: 1
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install WebKitGTK and build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev patchelf libfuse2 file
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: npm ci
+        working-directory: app
+      - run: npm run build
+        working-directory: app
+      - run: cargo clippy -p opendisk-app --all-targets -- -D warnings
+      - name: Build .deb and .AppImage
+        working-directory: app
+        run: npx tauri build --bundles deb,appimage
+      - name: Check the package
+        run: |
+          deb=$(ls target/release/bundle/deb/*.deb)
+          dpkg-deb --info "$deb"
+          dpkg-deb --contents "$deb"
+          appimage=$(ls target/release/bundle/appimage/*.AppImage)
+          chmod +x "$appimage"
+          "$appimage" --appimage-extract >/dev/null
+          test -x squashfs-root/AppRun
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OpenDisk-linux-amd64-deb
+          path: target/release/bundle/deb/*.deb
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OpenDisk-linux-amd64-appimage
+          path: target/release/bundle/appimage/*.AppImage
+          if-no-files-found: error
+
+  windows-app:
+    name: Windows installers (NSIS and MSI)
+    runs-on: windows-latest
+    needs: [rust, frontend]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: npm ci
+        working-directory: app
+      - run: npm run build
+        working-directory: app
+      - run: cargo clippy -p opendisk-app --all-targets -- -D warnings
+      - name: Build NSIS installer
+        working-directory: app
+        run: npx tauri build --bundles nsis
+      # MSI needs WiX and a strict version number; keep it best effort so a
+      # WiX problem never blocks the release of the NSIS installer.
+      - name: Build MSI installer (best effort)
+        continue-on-error: true
+        working-directory: app
+        run: npx tauri build --bundles msi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OpenDisk-windows-x64-nsis
+          path: target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OpenDisk-windows-x64-msi
+          path: target/release/bundle/msi/*.msi
+          if-no-files-found: warn
+
+  cli:
+    name: CLI binary (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [rust]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Built on 22.04 so the binary runs on 22.04 and later.
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            archive: tar.gz
+            rustflags: ''
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive: zip
+            # Static CRT: no Visual C++ redistributable needed.
+            rustflags: '-C target-feature=+crt-static'
+    env:
+      RUSTFLAGS: ${{ matrix.rustflags }}
+      CARGO_TARGET_DIR: target
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked -p opendisk-cli --target ${{ matrix.target }}
+      - name: Smoke test the binary
+        shell: bash
+        run: |
+          exe="target/${{ matrix.target }}/release/opendisk"
+          if [ "${{ runner.os }}" = "Windows" ]; then exe="$exe.exe"; fi
+          "$exe" --version
+          "$exe" rules > /dev/null
+      - name: Check the Windows binary needs no Visual C++ runtime
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $exe = "target/${{ matrix.target }}/release/opendisk.exe"
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) {
+            Write-Error "vswhere.exe not found; cannot locate dumpbin"
+          }
+          $install = & $vswhere -latest -products * `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -property installationPath
+          $dumpbin = Get-ChildItem "$install\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" `
+            | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $dumpbin) {
+            Write-Error "dumpbin.exe not found under $install"
+          }
+          $dump = & $dumpbin /dependents $exe | Out-String
+          if ($dump -match 'VCRUNTIME|MSVCP|ucrtbase') {
+            Write-Error "the binary still depends on the Visual C++ runtime`n$dump"
+          }
+          Write-Host $dump
+      - name: Package
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_REF}" != refs/tags/* ]]; then version="$(git rev-parse --short HEAD)"; fi
+          name="opendisk-${version}-${{ matrix.target }}"
+          mkdir -p dist
+          exe="target/${{ matrix.target }}/release/opendisk"
+          if [ "${{ runner.os }}" = "Windows" ]; then exe="$exe.exe"; fi
+          if [ "${{ matrix.archive }}" = "zip" ]; then
+            7z a "dist/${name}.zip" "$exe" LICENSE README.md > /dev/null
+          else
+            tar -czf "dist/${name}.tar.gz" -C "$(dirname "$exe")" "$(basename "$exe")" -C "$GITHUB_WORKSPACE" LICENSE README.md
+          fi
+          ls -l dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: OpenDisk-cli-${{ matrix.os }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    needs: [macos-app, linux-app, windows-app, cli]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+      - name: Add checksums
+        run: |
+          find dist -type f ! -name SHA256SUMS.txt -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            | sed 's#  dist/#  #' > dist/SHA256SUMS.txt
+          cat dist/SHA256SUMS.txt
+      - name: Create the release, or add the files to an existing one
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" target/universal-apple-darwin/release/bundle/dmg/*.dmg --generate-notes --title "OpenDisk $GITHUB_REF_NAME"
+          GH_REPO: ${{ github.repository }}
+        run: |
+          files=$(find dist -type f)
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" $files --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" $files --generate-notes --title "OpenDisk $GITHUB_REF_NAME"
+          fi

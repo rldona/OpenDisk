@@ -9,8 +9,9 @@ use std::sync::Mutex;
 
 use opendisk_core::clean::{self, Action, CleanOptions, Selection, Status};
 use opendisk_core::journal::Journal;
+use opendisk_core::paths::canonicalize;
 use opendisk_core::rules::RuleSet;
-use opendisk_core::system::System;
+use opendisk_core::system::{System, TrashCapacity, TrashOutcome};
 
 struct FakeSystem {
     trash_dir: PathBuf,
@@ -18,6 +19,8 @@ struct FakeSystem {
     processes: HashSet<String>,
     commands: HashSet<String>,
     ran: Mutex<Vec<Vec<String>>>,
+    capacity: TrashCapacity,
+    erase: bool,
 }
 
 impl FakeSystem {
@@ -29,15 +32,24 @@ impl FakeSystem {
             processes: HashSet::new(),
             commands: HashSet::new(),
             ran: Mutex::default(),
+            capacity: TrashCapacity::Unlimited,
+            erase: false,
         }
     }
 }
 
 impl System for FakeSystem {
-    fn trash(&self, path: &Path) -> io::Result<PathBuf> {
+    fn trash(&self, path: &Path) -> io::Result<TrashOutcome> {
+        if self.erase {
+            fs::remove_dir_all(path).or_else(|_| fs::remove_file(path))?;
+            return Ok(TrashOutcome::Erased);
+        }
         let to = self.trash_dir.join(path.file_name().unwrap());
         fs::rename(path, &to)?;
-        Ok(to)
+        Ok(TrashOutcome::Moved(Some(to)))
+    }
+    fn trash_capacity(&self, _path: &Path) -> TrashCapacity {
+        self.capacity.clone()
     }
     fn running_bundle_ids(&self) -> HashSet<String> {
         self.bundles.clone()
@@ -66,7 +78,7 @@ struct Fixture {
 
 fn fixture() -> Fixture {
     let tmp = tempfile::tempdir().unwrap();
-    let root = fs::canonicalize(tmp.path()).unwrap();
+    let root = canonicalize(tmp.path()).unwrap();
     let home = root.join("home");
     fs::create_dir_all(&home).unwrap();
     let sys = FakeSystem::new(root.join("fake-trash"));
@@ -84,6 +96,24 @@ fn make_dir(path: &Path, bytes: usize) {
     fs::write(path.join("blob.bin"), vec![3u8; bytes]).unwrap();
 }
 
+/// Directory link: symlink on Unix, junction on Windows (no admin needed).
+fn link_dir(target: &Path, link: &Path) {
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(target, link).unwrap();
+    #[cfg(windows)]
+    {
+        // mklink treats `/` as a switch, so use native separators.
+        let native = |p: &Path| p.to_string_lossy().replace('/', "\\");
+        let status = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(native(link))
+            .arg(native(target))
+            .status()
+            .unwrap();
+        assert!(status.success(), "mklink /J {link:?} -> {target:?}");
+    }
+}
+
 fn sel(rule: &str, path: &Path) -> Selection {
     Selection {
         rule_id: Some(rule.into()),
@@ -93,7 +123,7 @@ fn sel(rule: &str, path: &Path) -> Selection {
 }
 
 fn rules() -> &'static RuleSet {
-    RuleSet::builtin()
+    RuleSet::macos()
 }
 
 #[test]
@@ -154,8 +184,11 @@ fn delete_regenerable_frees_space_now() {
     make_dir(&target, 1 << 20);
     // A read-only nested dir (like Go's module cache) must still be removable.
     make_dir(&target.join("ro"), 10);
-    use std::os::unix::fs::PermissionsExt;
-    fs::set_permissions(target.join("ro"), fs::Permissions::from_mode(0o555)).unwrap();
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(target.join("ro"), fs::Permissions::from_mode(0o555)).unwrap();
+    }
     let opts = CleanOptions {
         delete_regenerable: true,
         ..Default::default()
@@ -192,7 +225,7 @@ fn refuses_symlink_target() {
     make_dir(&outside, 4096);
     fs::create_dir_all(f.home.join("Library/Caches")).unwrap();
     let link = f.home.join("Library/Caches/com.example.link");
-    std::os::unix::fs::symlink(&outside, &link).unwrap();
+    link_dir(&outside, &link);
     let plan = clean::plan(
         &[sel("user-caches", &link)],
         rules(),
@@ -213,7 +246,7 @@ fn refuses_symlinked_ancestor() {
     // ~/.npm is a symlink to a folder outside home that has a _cacache.
     let outside = f.home.parent().unwrap().join("outside-npm");
     make_dir(&outside.join("_cacache"), 4096);
-    std::os::unix::fs::symlink(&outside, f.home.join(".npm")).unwrap();
+    link_dir(&outside, &f.home.join(".npm"));
     let target = f.home.join(".npm/_cacache");
     let opts = CleanOptions {
         delete_regenerable: true,
@@ -232,7 +265,7 @@ fn symlinks_inside_a_deleted_tree_are_not_followed() {
     make_dir(&outside, 4096);
     let target = f.home.join(".npm/_cacache");
     make_dir(&target, 4096);
-    std::os::unix::fs::symlink(&outside, target.join("evil-link")).unwrap();
+    link_dir(&outside, &target.join("evil-link"));
     let opts = CleanOptions {
         delete_regenerable: true,
         ..Default::default()
@@ -296,7 +329,7 @@ fn refuses_when_swapped_for_symlink_after_preview() {
     let outside = f.home.parent().unwrap().join("outside");
     make_dir(&outside, 4096);
     fs::remove_dir_all(&target).unwrap();
-    std::os::unix::fs::symlink(&outside, &target).unwrap();
+    link_dir(&outside, &target);
     let report = clean::execute(&plan, rules(), &f.sys, Some(&f.journal), false).unwrap();
     assert_eq!(report.outcomes[0].status, Status::Skipped);
     assert!(outside.join("blob.bin").exists());
@@ -439,4 +472,126 @@ fn user_picked_paths_always_go_to_trash() {
     assert_eq!(plan.items[0].action, Action::Trash);
     let report = clean::execute(&plan, rules(), &f.sys, Some(&f.journal), false).unwrap();
     assert_eq!(report.outcomes[0].status, Status::Trashed);
+}
+
+fn with_bytes(rule: &str, path: &Path, bytes: u64) -> Selection {
+    Selection {
+        rule_id: Some(rule.into()),
+        path: path.to_path_buf(),
+        bytes,
+    }
+}
+
+#[test]
+fn blocks_items_too_big_for_the_trash() {
+    let mut f = fixture();
+    f.sys.capacity = TrashCapacity::MaxBytes(1_000);
+    let target = f.home.join("Library/Caches/com.example.app");
+    make_dir(&target, 4096);
+    let plan = clean::plan(
+        &[with_bytes("user-caches", &target, 2_000)],
+        rules(),
+        &f.home,
+        &f.sys,
+        &CleanOptions::default(),
+    );
+    assert!(
+        plan.items[0].blockers.iter().any(|b| b.contains("Too big")),
+        "{:?}",
+        plan.items[0].blockers
+    );
+    let report = clean::execute(&plan, rules(), &f.sys, Some(&f.journal), false).unwrap();
+    assert_eq!(report.outcomes[0].status, Status::Skipped);
+    assert!(target.exists());
+}
+
+#[test]
+fn blocks_when_the_trash_is_disabled_or_unknown() {
+    for capacity in [
+        TrashCapacity::Disabled,
+        TrashCapacity::Unknown("registry unreadable".into()),
+    ] {
+        let mut f = fixture();
+        f.sys.capacity = capacity;
+        let target = f.home.join("Library/Caches/com.example.app");
+        make_dir(&target, 4096);
+        let plan = clean::plan(
+            &[with_bytes("user-caches", &target, 10)],
+            rules(),
+            &f.home,
+            &f.sys,
+            &CleanOptions::default(),
+        );
+        assert!(!plan.items[0].blockers.is_empty(), "{:?}", plan.items[0].blockers);
+    }
+}
+
+#[test]
+fn erased_items_are_reported_honestly() {
+    let mut f = fixture();
+    f.sys.erase = true;
+    let target = f.home.join("Library/Caches/com.example.app");
+    make_dir(&target, 4096);
+    let plan = clean::plan(
+        &[sel("user-caches", &target)],
+        rules(),
+        &f.home,
+        &f.sys,
+        &CleanOptions::default(),
+    );
+    let report = clean::execute(&plan, rules(), &f.sys, Some(&f.journal), false).unwrap();
+    assert_eq!(report.outcomes[0].status, Status::Erased);
+    assert_eq!(report.deleted_bytes, 1);
+    assert_eq!(report.trashed_bytes, 0);
+    assert!(!target.exists());
+    let entries = f.journal.entries().unwrap();
+    assert_eq!(entries[0].action, opendisk_core::journal::JournalAction::Deleted);
+}
+
+#[test]
+fn undo_reports_items_whose_trash_location_is_unknown() {
+    use opendisk_core::journal::{JournalAction, JournalEntry};
+    let f = fixture();
+    let path = f.home.join(".npm/_cacache");
+    f.journal
+        .append(&JournalEntry {
+            run_id: "run-1".into(),
+            at: 1,
+            action: JournalAction::Trashed,
+            rule_id: Some("npm-cache".into()),
+            path: path.clone(),
+            trashed_to: None,
+            bytes: 1,
+            detail: None,
+        })
+        .unwrap();
+    let (restored, failed) = f.journal.undo("run-1").unwrap();
+    assert!(restored.is_empty());
+    assert_eq!(failed.len(), 1);
+    assert!(failed[0].1.contains("Recycle Bin") || failed[0].1.contains("Trash"));
+}
+
+/// Real Windows Recycle Bin round trip. Ignored by default because it touches
+/// the machine's Recycle Bin; the Windows CI job runs it with `--ignored`.
+#[cfg(windows)]
+#[test]
+#[ignore = "uses the real Recycle Bin; run on Windows CI"]
+fn real_recycle_bin_roundtrip() {
+    use opendisk_core::system::{RealSystem, TrashOutcome};
+
+    let tmp = tempfile::tempdir().unwrap();
+    let path = tmp.path().join("opendisk-recycle-test");
+    fs::create_dir_all(&path).unwrap();
+    fs::write(path.join("a.txt"), b"x").unwrap();
+
+    let sys = RealSystem;
+    let outcome = sys.trash(&path).unwrap();
+    assert!(!path.exists(), "the item left its original place: {outcome:?}");
+    let TrashOutcome::Moved(Some(trashed)) = outcome else {
+        panic!("expected the Recycle Bin to report where the item went");
+    };
+    assert!(trashed.exists(), "the $R entry exists: {}", trashed.display());
+
+    opendisk_core::system::restore_trashed(&trashed, &path).unwrap();
+    assert!(path.join("a.txt").exists(), "Undo put the folder back");
 }

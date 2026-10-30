@@ -6,11 +6,11 @@ members = ["core", "cli", "app/src-tauri"]
 default-members = ["core", "cli"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT"
 authors = ["Raúl López"]
-rust-version = "1.80"
+rust-version = "1.82"
 
 [workspace.dependencies]
 opendisk-core = { path = "core" }

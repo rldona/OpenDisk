@@ -1,0 +1,7 @@
+# Keep scripts, YAML and Rust sources identical on every runner.
+* text=auto eol=lf
+*.png binary
+*.icns binary
+*.ico binary
+*.dmg binary
+*.deb binary

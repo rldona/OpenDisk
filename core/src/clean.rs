@@ -22,7 +22,7 @@ use crate::journal::{self, Journal, JournalAction, JournalEntry};
 use crate::paths;
 use crate::rules::{CompiledRule, Rule, RuleSet, Safety};
 use crate::size;
-use crate::system::System;
+use crate::system::{System, TrashCapacity, TrashOutcome, TRASH_NAME};
 
 /// What the user picked: a finding item (with its rule) or, with no rule, a
 /// path picked by hand in the disk map (always moved to the Trash).
@@ -62,11 +62,11 @@ pub struct Fingerprint {
 }
 
 impl Fingerprint {
-    pub fn of(md: &fs::Metadata) -> Self {
-        let (dev, ino) = size::dev_ino(md);
+    pub fn of(path: &Path, md: &fs::Metadata) -> Self {
+        let info = size::info(path, md);
         Self {
-            dev,
-            ino,
+            dev: info.id.map_or(0, |id| id.volume),
+            ino: info.id.map_or(0, |id| id.index),
             is_dir: md.is_dir(),
             mtime_ns: mtime_ns(md),
         }
@@ -143,19 +143,24 @@ impl Running {
             }
         }
         for p in processes {
-            // `ps -c` truncates names to 15/16 characters.
-            let running = self.processes.contains(p)
-                || (p.len() > 15
-                    && self
-                        .processes
-                        .iter()
-                        .any(|r| r.len() >= 15 && p.starts_with(r.as_str())));
-            if running {
+            if process_running(&self.processes, p, cfg!(windows)) {
                 out.push(format!("Stop the process `{p}` first"));
             }
         }
         out
     }
+}
+
+/// Whether `wanted` is in the running set. On Windows names are lowercase and
+/// have no `.exe`; on Unix `ps -c` truncates names to 15 characters, so a
+/// prefix match is needed for longer ones.
+fn process_running(running: &HashSet<String>, wanted: &str, windows: bool) -> bool {
+    if windows {
+        let want = wanted.trim_end_matches(".exe").to_lowercase();
+        return running.contains(&want);
+    }
+    running.contains(wanted)
+        || (wanted.len() > 15 && running.iter().any(|r| r.len() >= 15 && wanted.starts_with(r.as_str())))
 }
 
 /// Checks that hold both when planning and right before acting.
@@ -179,6 +184,7 @@ fn static_checks(rule: Option<&Rule>, path: &Path, home: &Path) -> Vec<String> {
 /// Builds a plan for `selection`. Never modifies anything.
 pub fn plan(selection: &[Selection], rules: &RuleSet, home: &Path, sys: &dyn System, opts: &CleanOptions) -> Plan {
     let running = Running::of(sys);
+    let capacity = sys.trash_capacity(home);
     let mut items = Vec::with_capacity(selection.len());
     let mut seen = HashSet::new();
     for sel in selection {
@@ -202,7 +208,7 @@ pub fn plan(selection: &[Selection], rules: &RuleSet, home: &Path, sys: &dyn Sys
                 blockers.push("Is a symlink".into());
                 None
             }
-            Ok(md) => Some(Fingerprint::of(&md)),
+            Ok(md) => Some(Fingerprint::of(&sel.path, &md)),
             Err(e) => {
                 blockers.push(format!("Cannot read: {e}"));
                 None
@@ -239,6 +245,27 @@ pub fn plan(selection: &[Selection], rules: &RuleSet, home: &Path, sys: &dyn Sys
             Some(r) if r.safety == Safety::Regenerable && opts.delete_regenerable => Action::Delete,
             _ => Action::Trash,
         };
+        if action == Action::Trash {
+            match &capacity {
+                TrashCapacity::MaxBytes(max) if sel.bytes > max.saturating_mul(9) / 10 => {
+                    let mut msg = format!(
+                        "Too big for the {TRASH_NAME} (limit about {}): the system would delete it permanently",
+                        crate::format::bytes(*max)
+                    );
+                    if rule.is_some_and(|r| r.safety == Safety::Regenerable) && !opts.delete_regenerable {
+                        msg.push_str("; enable \"Delete regenerable caches immediately\" to remove it for good");
+                    }
+                    blockers.push(msg);
+                }
+                TrashCapacity::Disabled => blockers.push(format!(
+                    "The {TRASH_NAME} is turned off for this drive: moving it there would delete it permanently"
+                )),
+                TrashCapacity::Unknown(e) => {
+                    blockers.push(format!("Could not check the {TRASH_NAME} size ({e}); not moving it"))
+                }
+                _ => {}
+            }
+        }
         items.push(PlanItem {
             rule_id: sel.rule_id.clone(),
             rule_name: rule.map_or_else(|| "Picked by you".to_string(), |r| r.name.clone()),
@@ -274,6 +301,9 @@ pub enum Status {
     WouldClean,
     Trashed,
     Deleted,
+    /// The system deleted it permanently instead of moving it to the Trash
+    /// (Windows, when the item does not fit in the Recycle Bin).
+    Erased,
     CommandRan,
     /// The rule's command already ran for another item of the same rule.
     CoveredByCommand,
@@ -328,7 +358,7 @@ fn recheck(item: &PlanItem, rules: &RuleSet, home: &Path, running: &Running) -> 
     if md.file_type().is_symlink() {
         return Err("Became a symlink".into());
     }
-    if item.fingerprint.as_ref() != Some(&Fingerprint::of(&md)) {
+    if item.fingerprint.as_ref() != Some(&Fingerprint::of(&item.path, &md)) {
         return Err("Changed since the preview; preview again".into());
     }
     let busy = running.blockers(&item.requires_closed, &item.requires_no_process);
@@ -388,13 +418,32 @@ pub fn execute(
             detail: None,
         };
         let result = match &item.action {
-            Action::Trash => sys.trash(&item.path).map(|to| {
-                entry.action = JournalAction::Trashed;
-                entry.trashed_to = Some(to.clone());
-                outcome.trashed_to = Some(to);
-                Status::Trashed
+            Action::Trash => sys.trash(&item.path).map(|how| match how {
+                TrashOutcome::Moved(Some(to)) => {
+                    entry.action = JournalAction::Trashed;
+                    entry.trashed_to = Some(to.clone());
+                    outcome.trashed_to = Some(to);
+                    Status::Trashed
+                }
+                TrashOutcome::Moved(None) => {
+                    entry.action = JournalAction::Trashed;
+                    outcome.message = Some(format!(
+                        "In the {TRASH_NAME}; OpenDisk cannot undo it automatically, restore it from there"
+                    ));
+                    Status::Trashed
+                }
+                TrashOutcome::Erased => {
+                    entry.action = JournalAction::Deleted;
+                    entry.detail = Some("erased by the system instead of trashed".into());
+                    outcome.message = Some(format!(
+                        "The system deleted this permanently instead of moving it to the {TRASH_NAME}"
+                    ));
+                    Status::Erased
+                }
             }),
-            Action::Delete => remove_tree(&item.path, size::dev_ino(&md).0).map(|()| Status::Deleted),
+            Action::Delete => {
+                remove_tree(&item.path, size::info(&item.path, &md).id.map(|id| id.volume)).map(|()| Status::Deleted)
+            }
             Action::Command { argv, .. } => {
                 if commands_run.insert(argv.clone()) {
                     entry.action = JournalAction::Command;
@@ -438,13 +487,13 @@ pub fn execute(
         };
     }
     let available_after = sys.available_bytes(home)?;
-    let total = |s: Status| outcomes.iter().filter(|o| o.status == s).map(|o| o.bytes).sum();
+    let total = |s: Status| outcomes.iter().filter(|o| o.status == s).map(|o| o.bytes).sum::<u64>();
     Ok(Report {
         run_id,
         plan_id: plan.id.clone(),
         dry_run,
         trashed_bytes: total(Status::Trashed),
-        deleted_bytes: total(Status::Deleted),
+        deleted_bytes: total(Status::Deleted) + total(Status::Erased),
         skipped: outcomes.iter().filter(|o| o.status == Status::Skipped).count(),
         failed: outcomes.iter().filter(|o| o.status == Status::Failed).count(),
         available_before,
@@ -467,13 +516,20 @@ fn tail(s: &str) -> String {
 ///
 /// TODO(hardening): use openat/unlinkat relative to directory fds to close the
 /// remaining check-then-act window.
-pub fn remove_tree(path: &Path, dev: u64) -> io::Result<()> {
+pub fn remove_tree(path: &Path, volume: Option<u64>) -> io::Result<()> {
     let md = fs::symlink_metadata(path)?;
-    if !md.is_dir() {
-        return fs::remove_file(path); // unlinks symlinks themselves
+    if md.file_type().is_symlink() {
+        return remove_link(path, &md);
     }
-    if size::dev_ino(&md).0 != dev {
-        return Err(io::Error::other(format!("{} is on another volume", path.display())));
+    if !md.is_dir() {
+        clear_readonly(path, &md)?;
+        return fs::remove_file(path);
+    }
+    let info = size::info(path, &md);
+    if let (Some(expected), Some(id)) = (volume, info.id) {
+        if id.volume != expected {
+            return Err(io::Error::other(format!("{} is on another volume", path.display())));
+        }
     }
     #[cfg(unix)]
     {
@@ -483,8 +539,60 @@ pub fn remove_tree(path: &Path, dev: u64) -> io::Result<()> {
             fs::set_permissions(path, fs::Permissions::from_mode(mode | 0o700))?;
         }
     }
+    clear_readonly(path, &md)?;
     for entry in fs::read_dir(path)? {
-        remove_tree(&entry?.path(), dev)?;
+        remove_tree(&entry?.path(), volume)?;
     }
     fs::remove_dir(path)
+}
+
+/// Removes a symlink, junction or mount point itself, never its target.
+fn remove_link(path: &Path, md: &fs::Metadata) -> io::Result<()> {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::FileTypeExt;
+        if md.file_type().is_symlink_dir() {
+            return fs::remove_dir(path);
+        }
+    }
+    let _ = md;
+    fs::remove_file(path)
+}
+
+/// Windows marks some cache files read-only; removing them needs the flag off.
+#[cfg(windows)]
+fn clear_readonly(path: &Path, md: &fs::Metadata) -> io::Result<()> {
+    if md.permissions().readonly() {
+        let mut permissions = md.permissions();
+        #[allow(clippy::permissions_set_readonly_false)]
+        permissions.set_readonly(false);
+        fs::set_permissions(path, permissions)?;
+    }
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn clear_readonly(_path: &Path, _md: &fs::Metadata) -> io::Result<()> {
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn process_names_match_platform_semantics() {
+        let mut running = HashSet::new();
+        running.insert("chrome".to_string());
+        running.insert("averylongprocessname".to_string());
+
+        // Windows: lowercase, no `.exe`, exact match.
+        assert!(process_running(&running, "Chrome.exe", true));
+        assert!(!process_running(&running, "averylongprocessnamethatislonger", true));
+
+        // Unix: exact, plus the `ps -c` 15-character prefix rule.
+        assert!(process_running(&running, "chrome", false));
+        assert!(process_running(&running, "averylongprocessnamethatislonger", false));
+        assert!(!process_running(&running, "chromedriver", false));
+    }
 }

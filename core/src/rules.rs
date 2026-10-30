@@ -183,8 +183,32 @@ impl RuleSet {
 
     /// The rules shipped with OpenDisk for the current platform.
     pub fn builtin() -> &'static RuleSet {
+        if cfg!(target_os = "macos") {
+            Self::macos()
+        } else if cfg!(windows) {
+            Self::windows()
+        } else {
+            Self::linux()
+        }
+    }
+
+    /// The macOS rules (`rules/macos.yaml`), available on every platform for tests.
+    pub fn macos() -> &'static RuleSet {
         static SET: OnceLock<RuleSet> = OnceLock::new();
         SET.get_or_init(|| RuleSet::from_yaml(include_str!("../rules/macos.yaml")).expect("built-in rules are valid"))
+    }
+
+    /// The Linux rules (`rules/linux.yaml`), available on every platform for tests.
+    pub fn linux() -> &'static RuleSet {
+        static SET: OnceLock<RuleSet> = OnceLock::new();
+        SET.get_or_init(|| RuleSet::from_yaml(include_str!("../rules/linux.yaml")).expect("built-in rules are valid"))
+    }
+
+    /// The Windows rules (`rules/windows.yaml`), available on every platform
+    /// for tests.
+    pub fn windows() -> &'static RuleSet {
+        static SET: OnceLock<RuleSet> = OnceLock::new();
+        SET.get_or_init(|| RuleSet::from_yaml(include_str!("../rules/windows.yaml")).expect("built-in rules are valid"))
     }
 
     pub fn get(&self, id: &str) -> Option<&Rule> {
@@ -202,6 +226,7 @@ pub struct CompiledRule<'a> {
 fn glob(pattern: &str) -> Glob {
     globset::GlobBuilder::new(pattern)
         .literal_separator(true)
+        .case_insensitive(cfg!(windows))
         .backslash_escape(true)
         .build()
         .expect("validated glob")
@@ -212,11 +237,11 @@ impl<'a> CompiledRule<'a> {
         let include = rule
             .paths
             .iter()
-            .map(|p| glob(&escape_home(home, p)).compile_matcher())
+            .map(|p| glob(&glob_home(&home.to_string_lossy(), p, cfg!(windows))).compile_matcher())
             .collect();
         let mut ex = GlobSetBuilder::new();
         for p in &rule.exclude {
-            ex.add(glob(&escape_home(home, p)));
+            ex.add(glob(&glob_home(&home.to_string_lossy(), p, cfg!(windows))));
         }
         Self {
             rule,
@@ -247,15 +272,30 @@ impl<'a> CompiledRule<'a> {
 }
 
 /// Glob-escapes the home prefix (it may contain `[`, `{`...) and expands `~`.
-fn escape_home(home: &Path, pattern: &str) -> String {
+///
+/// On Windows the home comes with `\`; globset compares against `/`, so the
+/// separators are normalised and `\` is not escaped there.
+fn glob_home(home: &str, pattern: &str, windows: bool) -> String {
     let rest = pattern.strip_prefix("~/").unwrap_or(pattern);
-    let home = home.to_string_lossy();
+    let home = if windows {
+        home.replace('\\', "/")
+    } else {
+        home.to_string()
+    };
     let mut escaped = String::with_capacity(home.len() + rest.len() + 1);
     for c in home.chars() {
-        if matches!(c, '*' | '?' | '[' | ']' | '{' | '}' | '\\') {
+        let special = if windows {
+            matches!(c, '*' | '?' | '[' | ']' | '{' | '}')
+        } else {
+            matches!(c, '*' | '?' | '[' | ']' | '{' | '}' | '\\')
+        };
+        if special {
             escaped.push('\\');
         }
         escaped.push(c);
+    }
+    while escaped.len() > 1 && escaped.ends_with('/') {
+        escaped.pop();
     }
     escaped.push('/');
     escaped.push_str(rest);
@@ -285,7 +325,10 @@ pub fn expand(pattern: &str, home: &Path) -> Vec<std::path::PathBuf> {
                 for e in entries.flatten() {
                     let name = e.file_name();
                     let name_s = name.to_string_lossy();
-                    if matches!(name_s.as_ref(), ".DS_Store" | ".localized") {
+                    if matches!(
+                        name_s.as_ref(),
+                        ".DS_Store" | ".localized" | "desktop.ini" | "Thumbs.db"
+                    ) {
                         continue;
                     }
                     if m.is_match(name_s.as_ref()) {
@@ -317,15 +360,31 @@ mod tests {
 
     #[test]
     fn builtin_rules_load_and_validate() {
-        let set = RuleSet::builtin();
-        assert!(
-            set.rules.len() >= 40,
-            "ships at least 40 rules, has {}",
-            set.rules.len()
-        );
-        for r in &set.rules {
-            assert!(!r.examples.is_empty(), "rule {} needs at least one example", r.id);
+        // Every platform's list is valid and complete, wherever the test runs,
+        // so a broken windows.yaml fails on macOS too.
+        for (os, set) in [
+            ("macos", RuleSet::macos()),
+            ("linux", RuleSet::linux()),
+            ("windows", RuleSet::windows()),
+        ] {
+            assert!(
+                set.rules.len() >= 40,
+                "{os} ships at least 40 rules, has {}",
+                set.rules.len()
+            );
+            for r in &set.rules {
+                assert!(!r.examples.is_empty(), "rule {} needs at least one example", r.id);
+            }
         }
+        assert!(!RuleSet::builtin().rules.is_empty());
+    }
+
+    #[test]
+    fn glob_home_normalises_windows_separators() {
+        assert_eq!(glob_home("/Users/me", "~/a/*", false), "/Users/me/a/*");
+        assert_eq!(glob_home(r"C:\Users\me", "~/a/*", true), "C:/Users/me/a/*");
+        assert_eq!(glob_home(r"C:\Users\we[ir]d", "~/a", true), r"C:/Users/we\[ir\]d/a");
+        assert_eq!(glob_home(r"C:\", "~/a", true), "C:/a");
     }
 
     #[test]
@@ -345,7 +404,7 @@ mod tests {
 
     #[test]
     fn matching_escapes_home() {
-        let rule = RuleSet::builtin().get("user-caches").unwrap();
+        let rule = RuleSet::macos().get("user-caches").unwrap();
         let home = Path::new("/Users/we[ir]d");
         let c = CompiledRule::new(rule, home);
         assert!(c.matches(Path::new("/Users/we[ir]d/Library/Caches/com.foo.bar")));

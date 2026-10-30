@@ -8,6 +8,14 @@ export interface AppInfo {
   home: string;
   version: string;
   data_volume: string;
+  /** `std::env::consts::OS`: "macos", "linux" or "windows". */
+  os: string;
+  /** `/` on Unix, `\\` on Windows. */
+  path_sep: string;
+  /** "Trash" or "Recycle Bin". */
+  trash_name: string;
+  /** "Finder", "Files" or "File Explorer". */
+  file_manager: string;
 }
 
 export interface DiskInfo {
@@ -117,6 +125,7 @@ export type Status =
   | "would_clean"
   | "trashed"
   | "deleted"
+  | "erased"
   | "command_ran"
   | "covered_by_command"
   | "skipped"
@@ -194,6 +203,8 @@ export function formatBytes(n: number): string {
   return `${n < 0 ? "-" : ""}${s} ${units[u]}`;
 }
 
-export function tildify(path: string, home: string): string {
-  return path === home ? "~" : path.startsWith(home + "/") ? "~" + path.slice(home.length) : path;
+export function tildify(path: string, home: string, sep = "/"): string {
+  if (path === home) return "~";
+  const prefix = home.endsWith(sep) ? home : home + sep;
+  return path.startsWith(prefix) ? "~" + sep + path.slice(prefix.length) : path;
 }

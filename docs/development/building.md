@@ -60,10 +60,18 @@ registry. If your machine uses a private mirror, the pinned registry keeps it ou
 
 `.github/workflows/ci.yml` runs on every push and pull request:
 
-- `cargo fmt`, `clippy` and the tests on macOS;
+- `cargo fmt`, `clippy` and the tests on macOS, Ubuntu 22.04 and Windows;
 - the lockfile check, type checking and the frontend build;
-- a universal (Apple silicon + Intel) `.app` and `.dmg`, uploaded as the `OpenDisk-macos-universal` artifact.
+- a universal (Apple silicon + Intel) `.app` and `.dmg` (`OpenDisk-macos-universal`);
+- a `.deb` and an `.AppImage` (`OpenDisk-linux-amd64-deb`, `OpenDisk-linux-amd64-appimage`);
+- an NSIS installer and, best effort, an `.msi` (`OpenDisk-windows-x64-nsis`, `OpenDisk-windows-x64-msi`);
+- the `opendisk` command line binary for Linux and Windows (`OpenDisk-cli-*`).
 
-Pushing a tag such as `v0.1.0` also publishes a GitHub release with the `.dmg` attached.
+The Windows job also runs the real Recycle Bin round trip (`cargo test -- --ignored real_recycle_bin`), which macOS and
+Linux cannot exercise.
+
+Pushing a tag such as `v0.2.0` publishes a GitHub release with every installer, both CLI binaries and a
+`SHA256SUMS.txt`. MSI versions must be `major.minor.patch` without a prerelease suffix; if WiX rejects the tag the
+`.msi` is skipped and the NSIS installer still ships.
 
 `.github/workflows/pages.yml` builds this manual and publishes it to GitHub Pages.

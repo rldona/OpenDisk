@@ -3,7 +3,12 @@ outline: [2, 3]
 ---
 
 <script setup>
-import { data as rules } from "./rules.data.mts";
+import { computed, ref } from "vue";
+import { data as sets } from "./rules.data.mts";
+const platform = ref("macos");
+const labels = { macos: "macOS", linux: "Linux", windows: "Windows" };
+const files = { macos: "macos.yaml", linux: "linux.yaml", windows: "windows.yaml" };
+const rules = computed(() => sets[platform.value]);
 const categories = [
   ["ai-models", "AI models"], ["xcode", "Xcode & simulators"], ["javascript", "JavaScript"], ["jvm", "Java & Android"],
   ["python", "Python"], ["rust-go", "Rust & Go"], ["containers", "Containers"], ["homebrew", "Homebrew"],
@@ -14,12 +19,22 @@ const categories = [
 
 # Built-in rules
 
-OpenDisk ships **{{ rules.length }} rules** for macOS. This page is generated from
-[`core/rules/macos.yaml`](https://github.com/rldona/OpenDisk/blob/main/core/rules/macos.yaml),
-the same file that is compiled into the app, so it is always up to date.
+<div class="platforms">
+  <button
+    v-for="(label, id) in labels"
+    :key="id"
+    :class="{ active: platform === id }"
+    @click="platform = id"
+  >{{ label }}</button>
+</div>
 
-Paths are relative to your home folder (`~`). `*` matches anything inside one folder level and
-`{a,b}` matches either name. See [Safety model](/guide/safety) for what each safety level means.
+OpenDisk ships **{{ rules.length }} rules for {{ labels[platform] }}**. This page is generated from
+[`core/rules/{{ files[platform] }}`](https://github.com/rldona/OpenDisk/blob/main/core/rules/{{ files[platform] }}),
+the same file that is compiled into the {{ labels[platform] }} app, so it is always up to date.
+
+Paths are relative to your home folder (`~`). On Windows, `%LOCALAPPDATA%` and `%APPDATA%` are written as
+`~/AppData/Local` and `~/AppData/Roaming`. `*` matches anything inside one folder level and `{a,b}` matches either name.
+See [Safety model](/guide/safety) for what each safety level means.
 
 <template v-for="[cat, label] in categories" :key="cat">
   <h2 :id="cat">{{ label }}</h2>
@@ -36,3 +51,24 @@ Paths are relative to your home folder (`~`). `*` matches anything inside one fo
     </ul>
   </div>
 </template>
+
+<style scoped>
+.platforms {
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+}
+.platforms button {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--vp-c-text-1);
+  cursor: pointer;
+}
+.platforms button.active {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}
+</style>

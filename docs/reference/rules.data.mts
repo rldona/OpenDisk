@@ -1,5 +1,5 @@
-// Loads the built-in rules straight from core/rules/macos.yaml at build time,
-// so the manual always lists exactly what the app ships.
+// Loads the built-in rules straight from core/rules/*.yaml at build time, so
+// the manual always lists exactly what each platform ships.
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 
@@ -17,11 +17,21 @@ export interface Rule {
   permanent?: boolean;
 }
 
-const file = new URL("../../core/rules/macos.yaml", import.meta.url);
+function load(file: string): Rule[] {
+  return parse(readFileSync(new URL(`../../core/rules/${file}`, import.meta.url), "utf8")).rules as Rule[];
+}
 
 export default {
-  watch: ["../../core/rules/macos.yaml"],
-  load(): Rule[] {
-    return parse(readFileSync(file, "utf8")).rules as Rule[];
+  watch: [
+    "../../core/rules/macos.yaml",
+    "../../core/rules/linux.yaml",
+    "../../core/rules/windows.yaml",
+  ],
+  load(): Record<"macos" | "linux" | "windows", Rule[]> {
+    return {
+      macos: load("macos.yaml"),
+      linux: load("linux.yaml"),
+      windows: load("windows.yaml"),
+    };
   },
 };
