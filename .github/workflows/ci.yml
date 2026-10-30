@@ -225,11 +225,25 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           $exe = "target/${{ matrix.target }}/release/opendisk.exe"
-          $dump = & dumpbin /dependents $exe | Out-String
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path $vswhere)) {
+            Write-Error "vswhere.exe not found; cannot locate dumpbin"
+          }
+          $install = & $vswhere -latest -products * `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -property installationPath
+          $dumpbin = Get-ChildItem "$install\VC\Tools\MSVC\*\bin\Hostx64\x64\dumpbin.exe" `
+            | Select-Object -First 1 -ExpandProperty FullName
+          if (-not $dumpbin) {
+            Write-Error "dumpbin.exe not found under $install"
+          }
+          $dump = & $dumpbin /dependents $exe | Out-String
           if ($dump -match 'VCRUNTIME|MSVCP|ucrtbase') {
             Write-Error "the binary still depends on the Visual C++ runtime`n$dump"
           }
+          Write-Host $dump
       - name: Package
         shell: bash
         run: |
