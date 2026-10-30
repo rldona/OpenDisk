@@ -432,14 +432,40 @@ pub fn restore_trashed(from: &Path, to: &Path) -> io::Result<()> {
     let info = from.with_file_name(info_name);
     if let Ok(bytes) = std::fs::read(&info) {
         if let Some(parsed) = parse_info(&bytes) {
-            if !recycle::same_original(&parsed.original, &to.to_string_lossy()) {
-                return Err(io::Error::other("the Recycle Bin record belongs to another item"));
+            if !same_item(&parsed.original, to) {
+                return Err(io::Error::other(format!(
+                    "the Recycle Bin record belongs to another item ({} instead of {})",
+                    parsed.original,
+                    to.display()
+                )));
             }
         }
     }
     std::fs::rename(from, to)?;
     let _ = std::fs::remove_file(info);
     Ok(())
+}
+
+/// The `$I` record and the journal may disagree on 8.3 short names or case,
+/// so compare the name and the canonical parent instead of raw strings.
+fn same_item(original: &str, to: &Path) -> bool {
+    let original = Path::new(original);
+    if recycle::same_original(&original.to_string_lossy(), &to.to_string_lossy()) {
+        return true;
+    }
+    let (Some(a), Some(b)) = (original.file_name(), to.file_name()) else {
+        return false;
+    };
+    if !a.to_string_lossy().eq_ignore_ascii_case(&b.to_string_lossy()) {
+        return false;
+    }
+    let canon = |p: &Path| dunce::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
+    match (original.parent(), to.parent()) {
+        (Some(pa), Some(pb)) => canon(pa)
+            .to_string_lossy()
+            .eq_ignore_ascii_case(&canon(pb).to_string_lossy()),
+        _ => false,
+    }
 }
 
 pub fn forget_trash_info(trashed: &Path) {
