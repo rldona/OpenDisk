@@ -69,3 +69,21 @@ fn unknown_rule_is_an_error() {
     let (ok, _) = opendisk(&home, &["clean", "--rule", "nope"]);
     assert!(!ok);
 }
+
+#[test]
+fn lists_large_files_and_dry_runs_their_clean() {
+    let (_tmp, home, _cache) = fixture();
+    let big = home.join("Downloads/big-video.mkv");
+    fs::create_dir_all(big.parent().unwrap()).unwrap();
+    fs::write(&big, vec![7u8; 3_000_000]).unwrap();
+
+    let (ok, out) = opendisk(&home, &["large", "--min", "2MB"]);
+    assert!(ok, "{out}");
+    assert!(out.contains("big-video.mkv"), "{out}");
+    assert!(out.contains("cleanable"), "{out}");
+
+    let (ok, out) = opendisk(&home, &["large", "--min", "2MB", "--clean"]);
+    assert!(ok, "{out}");
+    assert!(out.contains("Dry run"), "{out}");
+    assert!(big.exists(), "the dry run must not remove anything");
+}

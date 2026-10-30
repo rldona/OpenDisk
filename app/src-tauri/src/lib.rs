@@ -15,7 +15,7 @@ use opendisk_core::fda::{self, FdaStatus};
 use opendisk_core::findings::{self, Finding, ScanSizer};
 use opendisk_core::journal::Journal;
 use opendisk_core::rules::RuleSet;
-use opendisk_core::scan::{self, DirNode, ScanOptions, ScanResult};
+use opendisk_core::scan::{self, DirNode, LargeFile, ScanOptions, ScanResult};
 use opendisk_core::snapshots::{self, SnapshotReport};
 use opendisk_core::system::{self, RealSystem, TRASH_NAME};
 use opendisk_core::{index, paths};
@@ -93,6 +93,46 @@ fn open_fda_settings() -> CmdResult<()> {
     fda::open_settings().map_err(err)
 }
 
+#[derive(Serialize)]
+struct LargeFileDto {
+    path: String,
+    size: u64,
+    modified: Option<u64>,
+    cleanable: bool,
+    /// Why it cannot be cleaned, when it cannot.
+    protected: Option<String>,
+}
+
+/// Individual files above `min_bytes` from the last scan, largest first.
+/// Files outside the home folder are listed but marked as protected.
+#[tauri::command]
+fn get_large_files(state: State<'_, AppState>, min_bytes: u64) -> CmdResult<Vec<LargeFileDto>> {
+    let scan = state.scan.lock().unwrap();
+    let Some(scan) = scan.as_ref() else {
+        return Err("scan first".into());
+    };
+    Ok(large_files(&scan.large_files, min_bytes, &state.home))
+}
+
+fn large_files(files: &[LargeFile], min_bytes: u64, home: &Path) -> Vec<LargeFileDto> {
+    files
+        .iter()
+        .filter(|f| f.size >= min_bytes && f.path.is_file())
+        .map(|f| {
+            let protected = paths::deny_reason(&f.path, home).or_else(|| {
+                (!paths::ancestors_are_real(&f.path)).then(|| "a parent folder is a link or missing".to_string())
+            });
+            LargeFileDto {
+                path: f.path.to_string_lossy().into_owned(),
+                size: f.size,
+                modified: f.modified,
+                cleanable: protected.is_none(),
+                protected,
+            }
+        })
+        .collect()
+}
+
 #[derive(Clone, Serialize)]
 struct ScanProgress {
     files: u64,
@@ -128,7 +168,8 @@ fn start_scan(app: AppHandle, state: State<'_, AppState>, target: String) -> Cmd
     if cancel_slot.is_some() {
         return Err("a scan is already running".into());
     }
-    let opts = ScanOptions::new(&root);
+    // Low threshold so the UI can offer 100 MB without scanning again.
+    let opts = ScanOptions::new(&root).collect_large_files(10 << 20);
     *cancel_slot = Some(opts.cancel.clone());
     drop(cancel_slot);
     let home = state.home.clone();
@@ -418,6 +459,7 @@ pub fn run() {
             cancel_scan,
             get_tree,
             get_findings,
+            get_large_files,
             create_plan,
             execute_plan,
             undo_run,

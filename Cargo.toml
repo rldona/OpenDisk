@@ -6,7 +6,7 @@ members = ["core", "cli", "app/src-tauri"]
 default-members = ["core", "cli"]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
 authors = ["Raúl López"]

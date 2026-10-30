@@ -31,3 +31,7 @@ The many small folders of a level are grouped into one striped block so the map 
 Each finished scan is saved in a small local database
 (`~/Library/Application Support/OpenDisk/index.sqlite`), with folder sizes a few levels deep. A future version will
 use it to show what grew since the last scan.
+
+
+The same scan also collects the individual files above 10 MB, which feed the [Large files](./large-files) tab. They cost
+almost nothing extra because the walker already reads every file's size.

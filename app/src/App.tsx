@@ -12,11 +12,12 @@ import {
   type Selection,
 } from "./api";
 import { Findings } from "./Findings";
+import { LargeFiles } from "./LargeFiles";
 import { Treemap } from "./Treemap";
 import { Snapshots } from "./Snapshots";
 import { CleanDialog } from "./CleanDialog";
 
-type Tab = "findings" | "map" | "snapshots";
+type Tab = "findings" | "map" | "large" | "snapshots";
 type Phase = "idle" | "scanning" | "ready";
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
   const [allowPermanent, setAllowPermanent] = useState(false);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dataVersion, setDataVersion] = useState(0);
 
   const refreshDisk = useCallback(() => api.diskInfo().then(setDisk).catch(() => {}), []);
   const refreshFda = useCallback(() => api.fdaStatus().then(setFda).catch(() => {}), []);
@@ -53,6 +55,7 @@ export default function App() {
         }
         setFindings(await api.getFindings());
         setSelected(new Map());
+        setDataVersion((v) => v + 1);
         setPhase("ready");
       }),
     ];
@@ -236,6 +239,7 @@ export default function App() {
                 [
                   ["findings", "Findings"],
                   ["map", "Disk map"],
+                  ["large", "Large files"],
                   ...(isMac ? ([["snapshots", "Snapshots"]] as const) : []),
                 ] as const
               ).map(([id, label]) => (
@@ -255,21 +259,35 @@ export default function App() {
               />
             )}
             {tab === "map" && <Treemap home={home} fileManager={fileManager} pathSep={pathSep} root={done.root} />}
+            {tab === "large" && (
+              <LargeFiles
+                home={home}
+                pathSep={pathSep}
+                fileManager={fileManager}
+                trashName={trashName}
+                selected={selected}
+                onChange={setSelected}
+                scanKey={`${done.root}:${done.duration_ms}`}
+                refreshKey={dataVersion}
+              />
+            )}
             {tab === "snapshots" && <Snapshots />}
           </>
         )}
       </main>
 
-      {phase === "ready" && tab === "findings" && selected.size > 0 && (
+      {phase === "ready" && (tab === "findings" || tab === "large") && selected.size > 0 && (
         <footer className="selection-bar">
           <span>
             <strong>{selected.size}</strong> selected · <strong>{formatBytes(selectedBytes)}</strong>
           </span>
-          <label title={`Regenerable caches are deleted right away instead of going to the ${trashName}, so the space comes back now.`}>
-            <input type="checkbox" checked={deleteRegenerable} onChange={(e) => setDeleteRegenerable(e.target.checked)} />
-            Delete regenerable caches immediately
-          </label>
-          {selectsPermanent && (
+          {tab === "findings" && (
+            <label title={`Regenerable caches are deleted right away instead of going to the ${trashName}, so the space comes back now.`}>
+              <input type="checkbox" checked={deleteRegenerable} onChange={(e) => setDeleteRegenerable(e.target.checked)} />
+              Delete regenerable caches immediately
+            </label>
+          )}
+          {tab === "findings" && selectsPermanent && (
             <label className="warn">
               <input type="checkbox" checked={allowPermanent} onChange={(e) => setAllowPermanent(e.target.checked)} />
               Empty the {trashName} items for good
@@ -294,6 +312,7 @@ export default function App() {
           onCleaned={async () => {
             setFindings(await api.getFindings());
             setSelected(new Map());
+            setDataVersion((v) => v + 1);
             refreshDisk();
           }}
         />

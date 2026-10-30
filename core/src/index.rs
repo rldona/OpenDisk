@@ -129,6 +129,7 @@ mod tests {
             cancelled: false,
             stats: crate::scan::Progress::default().snapshot(),
             denied: vec![],
+            large_files: vec![],
             duration_ms: 1,
         };
         let mut idx = Index::open(&tmp.path().join("index.sqlite")).unwrap();

@@ -41,6 +41,9 @@ APFS snapshots, the safety model, the [list of rules](https://rldona.github.io/O
   Discord, Teams, VS Code, Cursor, Spotify, Chrome, Edge, Brave, Arc and Firefox caches; logs; old installers in
   Downloads; iOS backups and firmware; the Trash
 - **Findings** grouped by category and sorted by size, each with a plain-language explanation and a safety badge
+- **Large files**: a separate view lists every file above 100 MB, 500 MB, 1 GB or 5 GB anywhere in the scanned disk,
+  largest first. Files inside your home folder can go to the Trash after the same preview; files elsewhere are shown
+  but marked as protected
 - **Preview → dry run → clean**, with the **space really freed** measured on the disk afterwards
 - **Undo**: everything moved to the Trash is journaled and can be put back
 - **Official tools first** when they exist: `xcrun simctl delete unavailable`, `brew cleanup`, `docker system prune`,
@@ -87,7 +90,7 @@ npm run demo                                # the UI in a browser with made-up d
 
 | Layer | Choice |
 | --- | --- |
-| Engine | Rust library: parallel scanner, YAML rule engine, cleaner with journal (`core/`) |
+| Engine | Rust library: parallel scanner (directory tree, allocated sizes and large files), YAML rule engine, cleaner with journal (`core/`) |
 | Rules | Declarative YAML embedded in the binary, each tested against its own examples (`core/rules/{macos,linux,windows}.yaml`) |
 | Desktop app | [Tauri 2](https://tauri.app) with React + TypeScript (`app/`), commands allowlisted |
 | Command line | `opendisk` on the same engine (`cli/`) |

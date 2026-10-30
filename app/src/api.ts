@@ -102,6 +102,14 @@ export type Action =
   | { kind: "delete" }
   | { kind: "command"; argv: string[]; description: string };
 
+export interface LargeFile {
+  path: string;
+  size: number;
+  modified: number | null;
+  cleanable: boolean;
+  protected: string | null;
+}
+
 export interface PlanItem {
   rule_id: string | null;
   rule_name: string;
@@ -177,6 +185,7 @@ export const api = {
   cancelScan: () => invoke<void>("cancel_scan"),
   getTree: (path?: string, depth = 2) => invoke<TreeNode>("get_tree", { path, depth }),
   getFindings: () => invoke<Finding[]>("get_findings"),
+  getLargeFiles: (minBytes: number) => invoke<LargeFile[]>("get_large_files", { minBytes }),
   createPlan: (selection: Selection[], options: CleanOptions) =>
     invoke<Plan>("create_plan", { selection, options }),
   executePlan: (planId: string, dryRun: boolean) =>

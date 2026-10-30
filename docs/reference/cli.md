@@ -28,6 +28,29 @@ Lists what the rules found, grouped by category, largest first.
 | `--all` | Show every matched path, not only the top 5 per rule |
 | `--json` | Machine-readable output |
 
+### `opendisk large [PATH]`
+
+Lists the individual files above a size, anywhere under `PATH`, largest first. It does not depend on the rules: it is
+the way to find that one huge video, disk image or archive that no cache rule knows about. `PATH` defaults to the home
+folder; use the data volume root (`/System/Volumes/Data`, `/` or `C:\`) to see the whole disk.
+
+Files outside your home folder are listed but marked `protected`: OpenDisk can show and reveal them, but only cleans
+inside your home folder.
+
+| Option | |
+| --- | --- |
+| `--min SIZE` | Minimum allocated size, e.g. `500MB` (default `500MB`) |
+| `--clean` | Plan the cleanable files and print the preview. Dry run unless `--execute` |
+| `--execute` | Really clean the selected large files (with `--clean`) |
+| `--yes`, `-y` | Don't ask for confirmation |
+| `--json` | Machine-readable list (or the cleaning report with `--clean`) |
+
+```bash
+opendisk large --min 1GB                          # biggest files in your home
+opendisk large / --min 5GB                        # whole disk, read only
+opendisk large --min 2GB --clean --execute --yes  # trash every cleanable file >= 2 GB
+```
+
 ### `opendisk clean`
 
 Plans a clean, prints it, and runs every safety check. Without `--execute` nothing is changed.
