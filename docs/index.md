@@ -25,7 +25,10 @@ features:
     details: Scans ~/Library and dot-folders like ~/.cache, ~/.npm and ~/.gradle, which Finder doesn't show, and draws them on a disk map.
   - icon: 🧠
     title: Knows dev and AI caches
-    details: 61 rules for Xcode, simulators, npm, Gradle, Cargo, pip, uv, conda, Hugging Face, Ollama, GPT4All, LM Studio, Docker, Homebrew and more.
+    details: 60+ rules for Xcode, simulators, npm, Gradle, Cargo, pip, uv, conda, Hugging Face, Ollama, GPT4All, LM Studio, Docker, Homebrew and more, plus dedicated lists for Linux and Windows.
+  - icon: 📦
+    title: Any big file, not only caches
+    details: The Large files view lists every file above 100 MB, 500 MB, 1 GB or 5 GB anywhere on the scanned disk, largest first, with the same preview, Trash and undo.
   - icon: 🗑️
     title: Trash first, undo always
     details: Items go to the Trash with an undo journal. Only caches a tool rebuilds on its own can be deleted directly, and only if you ask.
@@ -37,7 +40,7 @@ features:
     details: Sizes are real allocated blocks with hardlinks counted once, and the space freed is measured on the disk afterwards.
   - icon: 🔒
     title: Private by design
-    details: No network access, no telemetry. The desktop app can only call a short list of commands, and everything stays on your Mac.
+    details: No network access, no telemetry. The desktop app can only call a short list of commands, and everything stays on your computer.
 ---
 
 <div style="max-width: 1100px; margin: 48px auto 0;">

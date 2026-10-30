@@ -30,6 +30,12 @@
   };
 
   let findings = structuredClone(D.findings);
+  let largeFiles = [
+    { path: `${root}/Movies/holidays-2025.mkv`, size: 6_800_000_000, modified: 1_735_689_600, cleanable: true, protected: null },
+    { path: `${root}/Downloads/ubuntu-24.04.iso`, size: 5_900_000_000, modified: 1_735_689_600, cleanable: true, protected: null },
+    { path: `${root}/Pictures/Photos Library.photoslibrary/originals/0/IMG_1234.HEIC`, size: 1_200_000_000, modified: 1_735_689_600, cleanable: false, protected: "inside a Photos library" },
+    { path: "/Users/other/Backups/laptop.dmg", size: 9_000_000_000, modified: 1_735_689_600, cleanable: false, protected: "outside the home folder" },
+  ];
   let available = D.disk.available;
   const plans = {};
   const running = new Set(["com.google.Chrome"]);
@@ -83,10 +89,22 @@
       return toDto(node, p, depth ?? 2);
     },
     get_findings: () => findings,
+    get_large_files: ({ minBytes }) => largeFiles.filter((f) => f.size >= minBytes),
     create_plan: ({ selection, options }) => {
       const byRule = Object.fromEntries(findings.map((f) => [f.rule_id, f]));
       const items = selection.map((s) => {
-        const f = byRule[s.rule_id];
+        const f = s.rule_id ? byRule[s.rule_id] : null;
+        if (!f) {
+          return {
+            rule_id: null,
+            rule_name: "Picked by you",
+            path: s.path,
+            bytes: s.bytes,
+            safety: "personal",
+            action: { kind: "trash" },
+            blockers: [],
+          };
+        }
         const item = f.items.find((i) => i.path === s.path);
         const action = f.prefer_command
           ? { kind: "command", ...f.prefer_command }
@@ -136,6 +154,7 @@
           .map((f) => ({ ...f, items: f.items.filter((i) => !done.has(i.path)) }))
           .map((f) => ({ ...f, total_bytes: f.items.reduce((s, i) => s + i.bytes, 0) }))
           .filter((f) => f.items.length > 0);
+        largeFiles = largeFiles.filter((f) => !done.has(f.path));
       }
       return {
         run_id: "demo-run",

@@ -384,6 +384,25 @@ pub fn is_config_cache(path: &Path) -> bool {
     })
 }
 
+/// The path as the user sees it. On macOS a whole-volume scan walks
+/// `/System/Volumes/Data`, but the same files live under `/` through the
+/// firmlinks; using the logical path keeps the home check, reveal and clean
+/// working.
+pub fn logical_path(path: &Path) -> PathBuf {
+    #[cfg(target_os = "macos")]
+    if let Ok(rest) = path.strip_prefix("/System/Volumes/Data") {
+        return Path::new("/").join(rest);
+    }
+    path.to_path_buf()
+}
+
+/// Whether OpenDisk may move `path` to the Trash: inside the home folder, not
+/// denied, and every ancestor is a real folder (no symlinks, junctions or 8.3
+/// aliases).
+pub fn is_cleanable(path: &Path, home: &Path) -> bool {
+    deny_reason(path, home).is_none() && ancestors_are_real(path)
+}
+
 /// Checks that no ancestor of `path` (below the volume root) is a symlink,
 /// junction or short name, so the path resolves to where it says it does.
 pub fn ancestors_are_real(path: &Path) -> bool {
@@ -539,6 +558,31 @@ mod tests {
         assert!(deny_reason(&p(".config/Code/Cache"), &home).is_none());
         assert!(deny_reason(&p("AppData/Roaming/Microsoft/Credentials/x"), &home).is_some());
         assert!(deny_reason(&p("AppData/Roaming/Microsoft/Teams/Cache"), &home).is_none());
+    }
+
+    #[test]
+    fn logical_paths_drop_the_macos_data_volume() {
+        let path = Path::new("/System/Volumes/Data/Users/me/Movies/a.mkv");
+        if cfg!(target_os = "macos") {
+            assert_eq!(logical_path(path), Path::new("/Users/me/Movies/a.mkv"));
+        } else {
+            assert_eq!(logical_path(path), path);
+        }
+        assert_eq!(logical_path(Path::new("/home/me/a")), Path::new("/home/me/a"));
+    }
+
+    #[test]
+    fn only_home_paths_are_cleanable() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = canonicalize(tmp.path()).unwrap();
+        let home = root.join("home");
+        let inside = home.join("Library/Caches/com.example");
+        let outside = root.join("outside");
+        std::fs::create_dir_all(&inside).unwrap();
+        std::fs::create_dir_all(&outside).unwrap();
+        assert!(is_cleanable(&inside, &home));
+        assert!(!is_cleanable(&outside, &home));
+        assert!(!is_cleanable(&home.join("Library/Mail/V10"), &home));
     }
 
     #[test]

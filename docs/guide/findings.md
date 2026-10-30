@@ -33,3 +33,9 @@ Tick a whole finding or single items. The bar at the bottom shows how much you s
 - A more specific rule already claimed it. For example `~/.cache/huggingface/hub` belongs to the Hugging Face rule,
   not to the generic `~/.cache` rule.
 - It is a symlink, or lives under a protected folder (see [Safety model](./safety)).
+
+
+## Files the rules do not know
+
+Findings only explain paths that a rule recognises. If the disk is full and none of the findings explains it, open the
+[Large files](./large-files) tab: it lists every individual file above the size you choose, with no rule required.

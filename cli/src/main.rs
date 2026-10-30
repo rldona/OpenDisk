@@ -17,6 +17,7 @@ use opendisk_core::rules::{RuleSet, Safety};
 use opendisk_core::scan::{self, DirNode, ScanOptions};
 use opendisk_core::system::{RealSystem, TRASH_NAME};
 use opendisk_core::{fda, index, paths, snapshots};
+use serde::Serialize;
 
 #[derive(Parser)]
 #[command(
@@ -60,6 +61,27 @@ enum Command {
         /// Show every matched path, not only the top 5 per rule.
         #[arg(long)]
         all: bool,
+        #[arg(long)]
+        json: bool,
+    },
+    /// List the biggest individual files anywhere under a folder.
+    Large {
+        /// Minimum allocated size (for example 500MB or 1GB).
+        #[arg(long = "min", default_value = "500MB")]
+        min_size: String,
+        /// Folder to scan (default: the home folder). Use the data volume
+        /// root to see everything on the disk.
+        path: Option<PathBuf>,
+        /// Build a plan for the cleanable files and clean them (dry run
+        /// unless --execute is given).
+        #[arg(long)]
+        clean: bool,
+        /// Really clean with --clean. Without it, --clean is a dry run.
+        #[arg(long)]
+        execute: bool,
+        /// Don't ask for confirmation before executing.
+        #[arg(long, short)]
+        yes: bool,
         #[arg(long)]
         json: bool,
     },
@@ -140,6 +162,14 @@ fn main() -> Result<()> {
             no_index,
         } => cmd_scan(&home, path.unwrap_or_else(|| home.clone()), depth, top, json, no_index),
         Command::Findings { min_size, all, json } => cmd_findings(&home, &min_size, all, json),
+        Command::Large {
+            min_size,
+            path,
+            clean,
+            execute,
+            yes,
+            json,
+        } => cmd_large(&home, path, &min_size, clean, execute, yes, json),
         Command::Clean {
             rules,
             safety,
@@ -341,6 +371,115 @@ fn display_home(path: &Path, home: &Path) -> String {
     }
 }
 
+#[derive(Serialize)]
+struct LargeFileOut {
+    path: String,
+    size: u64,
+    modified: Option<u64>,
+    cleanable: bool,
+    /// Why it cannot be cleaned, when it cannot.
+    protected: Option<String>,
+}
+
+fn cmd_large(
+    home: &Path,
+    path: Option<PathBuf>,
+    min_size: &str,
+    clean: bool,
+    execute: bool,
+    yes: bool,
+    json: bool,
+) -> Result<()> {
+    let min = min_bytes(min_size)?;
+    let root = path.unwrap_or_else(|| home.to_path_buf());
+    let opts = ScanOptions::new(&root).collect_large_files(min);
+    let result = scan::scan(&opts).with_context(|| format!("cannot scan {}", root.display()))?;
+
+    let mut rows = Vec::new();
+    let mut total = 0u64;
+    let mut cleanable_bytes = 0u64;
+    for f in result.large_files.iter().filter(|f| f.size >= min) {
+        let protected = paths::deny_reason(&f.path, home).or_else(|| {
+            (!paths::ancestors_are_real(&f.path)).then(|| "a parent folder is a link or missing".to_string())
+        });
+        let cleanable = protected.is_none();
+        if cleanable {
+            cleanable_bytes += f.size;
+        }
+        total += f.size;
+        rows.push(LargeFileOut {
+            path: f.path.to_string_lossy().into_owned(),
+            size: f.size,
+            modified: f.modified,
+            cleanable,
+            protected,
+        });
+    }
+
+    if json {
+        // With --clean the report is the only JSON document on stdout.
+        if !clean {
+            println!("{}", serde_json::to_string_pretty(&rows)?);
+        }
+    } else {
+        let cleanable_count = rows.iter().filter(|r| r.cleanable).count();
+        println!(
+            "{} file{} >= {} ({} in total; {} cleanable, {}).",
+            rows.len(),
+            if rows.len() == 1 { "" } else { "s" },
+            bytes(min),
+            bytes(total),
+            cleanable_count,
+            bytes(cleanable_bytes)
+        );
+        if !root.starts_with(home) {
+            println!(
+                "Scanning {} — only files inside {} can be cleaned.",
+                root.display(),
+                home.display()
+            );
+        }
+        for r in &rows {
+            let note = r
+                .protected
+                .as_ref()
+                .map(|why| format!("  [protected: {why}]"))
+                .unwrap_or_default();
+            println!(
+                "  {:>10}  {}{note}",
+                bytes(r.size),
+                display_home(Path::new(&r.path), home)
+            );
+        }
+    }
+
+    if clean {
+        let selected: Vec<Selection> = rows
+            .iter()
+            .filter(|r| r.cleanable)
+            .map(|r| Selection {
+                rule_id: None,
+                path: PathBuf::from(&r.path),
+                bytes: r.size,
+            })
+            .collect();
+        if selected.is_empty() {
+            println!("Nothing to clean.");
+            return Ok(());
+        }
+        apply_selection(
+            home,
+            selected,
+            RuleSet::builtin(),
+            &CleanOptions::default(),
+            execute,
+            yes,
+            json,
+        )?;
+    }
+    Ok(())
+}
+
 struct CleanArgs {
     rules: Vec<String>,
     safety: Vec<Safety>,
@@ -382,9 +521,21 @@ fn cmd_clean(home: &Path, args: CleanArgs) -> Result<()> {
         println!("Nothing to clean.");
         return Ok(());
     }
+    apply_selection(home, selected, rules, &args.opts, args.execute, args.yes, args.json)
+}
+
+fn apply_selection(
+    home: &Path,
+    selected: Vec<Selection>,
+    rules: &RuleSet,
+    opts: &CleanOptions,
+    execute: bool,
+    yes: bool,
+    json: bool,
+) -> Result<()> {
     let sys = RealSystem;
-    let plan = clean::plan(&selected, rules, home, &sys, &args.opts);
-    if !args.json {
+    let plan = clean::plan(&selected, rules, home, &sys, opts);
+    if !json {
         println!("Plan {}:", plan.id);
         for item in &plan.items {
             let action = match &item.action {
@@ -412,8 +563,8 @@ fn cmd_clean(home: &Path, args: CleanArgs) -> Result<()> {
             bytes(plan.blocked_bytes)
         );
     }
-    let dry_run = !args.execute;
-    if !dry_run && !args.yes {
+    let dry_run = !execute;
+    if !dry_run && !yes {
         if !std::io::stdin().is_terminal() {
             bail!("refusing to execute without a terminal; pass --yes to confirm");
         }
@@ -428,7 +579,7 @@ fn cmd_clean(home: &Path, args: CleanArgs) -> Result<()> {
     }
     let journal = Journal::open(&paths::data_dir(home))?;
     let report = clean::execute(&plan, rules, &sys, Some(&journal), dry_run)?;
-    if args.json {
+    if json {
         println!("{}", serde_json::to_string_pretty(&report)?);
         return Ok(());
     }

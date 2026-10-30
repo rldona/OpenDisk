@@ -29,6 +29,7 @@ export default defineConfig({
           { text: "Full Disk Access", link: "/guide/full-disk-access" },
           { text: "Scanning and the disk map", link: "/guide/scanning" },
           { text: "Findings", link: "/guide/findings" },
+          { text: "Large files", link: "/guide/large-files" },
           { text: "Cleaning", link: "/guide/cleaning" },
           { text: "APFS snapshots", link: "/guide/snapshots" },
           { text: "Safety model", link: "/guide/safety" },

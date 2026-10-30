@@ -42,7 +42,8 @@ in to GitHub).
 
 ![Scanning](/screenshots/scanning.png)
 
-3. Look through the [findings](./findings), select what you want to clean, and click **Preview…**.
+3. Look through the [findings](./findings) or the [Large files](./large-files) tab, select what you want to clean,
+   and click **Preview…**.
 4. Run a **Dry run** if you want to see what would happen without changing anything, then **Clean**.
 
 Nothing is touched until you confirm the preview, and most things go to the Trash (the Recycle Bin on Windows), where

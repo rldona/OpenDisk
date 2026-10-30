@@ -55,6 +55,10 @@ pub struct ScanOptions {
     pub root: PathBuf,
     pub cancel: Arc<AtomicBool>,
     pub progress: Arc<Progress>,
+    /// When set, files at least this big are also returned in
+    /// [`ScanResult::large_files`]. `None` keeps the walk lean (measuring a
+    /// single folder does not need them).
+    pub large_min: Option<u64>,
 }
 
 impl ScanOptions {
@@ -63,7 +67,14 @@ impl ScanOptions {
             root: root.into(),
             cancel: Arc::default(),
             progress: Arc::default(),
+            large_min: None,
         }
+    }
+
+    /// Also collect the individual files bigger than `min_bytes`.
+    pub fn collect_large_files(mut self, min_bytes: u64) -> Self {
+        self.large_min = Some(min_bytes);
+        self
     }
 }
 
@@ -98,6 +109,16 @@ impl DirNode {
     }
 }
 
+/// A single file above the collection threshold, largest first.
+#[derive(Debug, Clone, Serialize)]
+pub struct LargeFile {
+    pub path: PathBuf,
+    /// Allocated bytes on disk.
+    pub size: u64,
+    /// Seconds since the Unix epoch.
+    pub modified: Option<u64>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct ScanResult {
     pub root: PathBuf,
@@ -106,6 +127,9 @@ pub struct ScanResult {
     pub stats: ProgressSnapshot,
     /// Up to [`MAX_DENIED`] directories that could not be read.
     pub denied: Vec<PathBuf>,
+    /// Files above the collection threshold, largest first. Empty unless
+    /// [`ScanOptions::collect_large_files`] was used.
+    pub large_files: Vec<LargeFile>,
     pub duration_ms: u64,
 }
 
@@ -130,12 +154,22 @@ impl ScanResult {
     }
 }
 
+fn mtime_secs(md: &fs::Metadata) -> Option<u64> {
+    md.modified()
+        .ok()?
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()
+        .map(|d| d.as_secs())
+}
+
 struct Walker<'a> {
     root_volume: Option<u64>,
     seen_inodes: DashSet<size::FileId>,
     cancel: &'a AtomicBool,
     progress: &'a Progress,
     denied: Mutex<Vec<PathBuf>>,
+    large_min: Option<u64>,
+    large: Mutex<Vec<LargeFile>>,
 }
 
 impl Walker<'_> {
@@ -208,7 +242,21 @@ impl Walker<'_> {
                 subdirs.push((entry.path(), child_name, info.allocated));
             } else {
                 // Regular files, symlinks (the link itself), sockets, ...
-                node.own_files_size += self.file_size(&entry.path(), &md);
+                let size = self.file_size(&entry.path(), &md);
+                if let Some(min) = self.large_min {
+                    // A hardlink already counted elsewhere returns 0, so the
+                    // list does not offer the same inode twice.
+                    if size > 0 && size >= min {
+                        self.large.lock().unwrap().push(LargeFile {
+                            // On macOS the data volume is a firmlink; list the
+                            // path the user knows so home checks and Trash work.
+                            path: crate::paths::logical_path(&entry.path()),
+                            size,
+                            modified: mtime_secs(&md),
+                        });
+                    }
+                }
+                node.own_files_size += size;
                 files += 1;
             }
         }
@@ -261,16 +309,21 @@ pub fn scan(opts: &ScanOptions) -> io::Result<ScanResult> {
         cancel: &opts.cancel,
         progress: &opts.progress,
         denied: Mutex::default(),
+        large_min: opts.large_min,
+        large: Mutex::default(),
     };
     let name = opts.root.to_string_lossy().into_owned();
     let root_size = size::info(&opts.root, &root_md).allocated;
     let tree = pool().install(|| walker.walk(&opts.root, name, root_size));
+    let mut large_files = walker.large.into_inner().unwrap();
+    large_files.sort_unstable_by_key(|f| std::cmp::Reverse(f.size));
     Ok(ScanResult {
         root: opts.root.clone(),
         tree,
         cancelled: opts.cancel.load(Ordering::Relaxed),
         stats: opts.progress.snapshot(),
         denied: walker.denied.into_inner().unwrap(),
+        large_files,
         duration_ms: start.elapsed().as_millis() as u64,
     })
 }
@@ -348,6 +401,25 @@ mod tests {
         );
     }
 
+    #[test]
+    fn collects_large_files_once_and_skips_links() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path();
+        write(&root.join("big.bin"), 2 << 20);
+        write(&root.join("small.txt"), 10);
+        fs::hard_link(root.join("big.bin"), root.join("big-link.bin")).unwrap();
+        let outside = tempfile::tempdir().unwrap();
+        write(&outside.path().join("outside.bin"), 4 << 20);
+        link_dir(outside.path(), &root.join("link-out"));
+
+        let res = scan(&ScanOptions::new(root).collect_large_files(1 << 20)).unwrap();
+        assert_eq!(res.large_files.len(), 1, "{:?}", res.large_files);
+        let file = &res.large_files[0];
+        assert!(file.path.ends_with("big.bin") || file.path.ends_with("big-link.bin"));
+        assert!(file.size >= 2 << 20);
+        assert!(file.modified.is_some());
+    }
+
     #[cfg(unix)]
     #[test]
     fn allocated_not_logical() {
@@ -388,6 +460,7 @@ mod tests {
             cancelled: false,
             stats: Progress::default().snapshot(),
             denied: vec![],
+            large_files: vec![],
             duration_ms: 0,
         };
         assert_eq!(res.find(Path::new("/Users")).unwrap().size, 5);

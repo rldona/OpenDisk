@@ -545,3 +545,52 @@ tr.blocked td {
   max-width: 820px;
   line-height: 1.5;
 }
+
+.large-files {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.large-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.large-controls select {
+  margin-left: 4px;
+}
+.large-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  overflow: hidden;
+}
+.large-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+.large-list li:first-child {
+  border-top: 0;
+}
+.large-list li.selected {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.large-list li.protected {
+  opacity: 0.6;
+}
+.large-main {
+  flex: 1;
+  min-width: 0;
+}
+.large-size {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
